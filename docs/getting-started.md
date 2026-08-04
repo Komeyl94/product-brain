@@ -38,7 +38,7 @@ missing, Claude tells you the single thing to install, or a teammate installs it
   behind-the-scenes tool — with nothing to configure:
   ```text
   /plugin marketplace add Whotan/product-brain
-  /plugin install product-brain@product-hub
+  /plugin install product-brain@product-brain
   /reload-plugins
   ```
 - **In Cowork:** a teammate adds the **brainify** skill to your claude.ai account once

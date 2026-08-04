@@ -3,7 +3,7 @@
 #
 # PREFER THE PLUGIN. On Claude Code the recommended install needs no scripts and no PATH edits:
 #     /plugin marketplace add Whotan/product-brain
-#     /plugin install product-brain@product-hub
+#     /plugin install product-brain@product-brain
 #     /reload-plugins
 # That ships the skill AND puts `pb` on PATH automatically. Use this script only when you can't
 # use plugins (e.g. a plain checkout) — it copies the skill into ~/.claude/skills and, optionally,
@@ -90,4 +90,4 @@ echo "   Check anytime:    pb version   (or: python3 $PB_SRC version — no PATH
 echo "   Start using it:   open Claude Code and say \"set up product brain\""
 echo ""
 echo "   Tip: on Claude Code, the plugin install is simpler and needs no PATH edits —"
-echo "        /plugin marketplace add Whotan/product-brain && /plugin install product-brain@product-hub"
+echo "        /plugin marketplace add Whotan/product-brain && /plugin install product-brain@product-brain"

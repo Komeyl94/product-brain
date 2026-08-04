@@ -99,7 +99,7 @@ the `pb` CLI on your `PATH` — **no scripts, no PATH editing, no manual copying
 
 ```text
 /plugin marketplace add Whotan/product-brain
-/plugin install product-brain@product-hub
+/plugin install product-brain@product-brain
 /reload-plugins
 ```
 
