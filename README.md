@@ -270,6 +270,13 @@ marketplace + plugin; a `/reload-plugins` (or a new session) activates it. Per s
 the hub gets the same offer to load Product Brain — no one hand-installs a plugin per machine, and it
 travels with the repo into cloud sessions.
 
+> **One caveat, honestly:** that cloud/web/Cowork sessions read `enabledPlugins` from a committed
+> `.claude/settings.json` is what the plugin docs describe, but we haven't hard-verified it inside a
+> live **Cowork** session yet — the two behave slightly differently. The **guaranteed** Cowork path is
+> the account-level skill upload (`bin/package-skill.sh` → `dist/brainify.skill` → claude.ai →
+> Settings → Features). Treat the repo-declared marketplace as the documented-but-unconfirmed path for
+> Cowork, and confirm it in your own session before relying on it for a non-technical teammate.
+
 ---
 
 ## What a hub is made of

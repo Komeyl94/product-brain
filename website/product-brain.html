@@ -476,7 +476,7 @@ pb sync --dry-run    # preview without building</code></pre>
         <tr>
           <td><strong>Cloud / on the web / Cowork</strong></td>
           <td>Commit the settings file to the hub — cloud sessions read <code>enabledPlugins</code> from it. <strong>For Cowork, also</strong> upload the skill to your claude.ai account once: run <code>bin/package-skill.sh</code> → upload <code>dist/brainify.skill</code> at <em>claude.ai → Settings → Features</em>.</td>
-          <td>Cloud can't see your local <code>~/.claude/</code>. Repo-committed config (or the account skill) is the only way in — a fresh cloud agent needs the skill available before it can run setup.</td>
+          <td>Cloud can't see your local <code>~/.claude/</code>. Repo-committed config (or the account skill) is the only way in — a fresh cloud agent needs the skill available before it can run setup. <strong>Not yet hard-verified in a live Cowork session</strong> — the account-skill upload is the guaranteed path; confirm the repo-declared marketplace yourself before relying on it.</td>
         </tr>
       </tbody>
     </table>
