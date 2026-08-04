@@ -45,6 +45,11 @@ missing, Claude tells you the single thing to install, or a teammate installs it
   (Settings → Features). After that it's available in all your Cowork chats.
 - **Check it worked:** type "set up product brain" — if Claude starts a checklist, you're set.
 
+> **Using VS Code, the desktop app, or the web?** You don't repeat this per app. Once your hub is set
+> up, it carries a small `.claude/settings.json` that tells *every* Claude surface to load Product
+> Brain when you open the hub — the wizard writes it for you. Full details:
+> [Using Product Brain in every Claude surface](../README.md#using-product-brain-in-every-claude-surface).
+
 ### 2. Create the hub and set it up
 Say: **"Set up product brain."** Claude does the technical parts for you — it installs the map
 builder if needed, makes the hub, and asks you simple questions one at a time (your rules, your key

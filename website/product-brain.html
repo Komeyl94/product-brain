@@ -153,13 +153,14 @@
     <a data-sec="hub"><span>Anatomy of a hub</span><span class="nav-num">04</span></a>
     <a data-sec="skill"><span>The setup wizard</span><span class="nav-num">05</span></a>
     <a data-sec="setup"><span>Setup guide</span><span class="nav-num">06</span></a>
-    <a data-sec="customize"><span>Customize with Claude</span><span class="nav-num">07</span></a>
-    <a data-sec="devstart"><span>For developers</span><span class="nav-num">08</span></a>
-    <a data-sec="roles"><span>How-tos by role</span><span class="nav-num">09</span></a>
-    <a data-sec="example"><span>Example: a to-do app</span><span class="nav-num">10</span></a>
-    <a data-sec="contribute"><span>Contribute</span><span class="nav-num">11</span></a>
-    <a data-sec="open"><span>Open problems</span><span class="nav-num">12</span></a>
-    <a data-sec="faq"><span>FAQ</span><span class="nav-num">13</span></a>
+    <a data-sec="surfaces"><span>Every Claude surface</span><span class="nav-num">07</span></a>
+    <a data-sec="customize"><span>Customize with Claude</span><span class="nav-num">08</span></a>
+    <a data-sec="devstart"><span>For developers</span><span class="nav-num">09</span></a>
+    <a data-sec="roles"><span>How-tos by role</span><span class="nav-num">10</span></a>
+    <a data-sec="example"><span>Example: a to-do app</span><span class="nav-num">11</span></a>
+    <a data-sec="contribute"><span>Contribute</span><span class="nav-num">12</span></a>
+    <a data-sec="open"><span>Open problems</span><span class="nav-num">13</span></a>
+    <a data-sec="faq"><span>FAQ</span><span class="nav-num">14</span></a>
   </nav>
   <div id="sidebar-footer">Easy to start · no technical skills needed</div>
 </aside>
@@ -432,7 +433,58 @@ pb sync --dry-run    # preview without building</code></pre>
     <div class="callout"><p>Your application repos need <strong>no changes</strong> to get started — the hub pulls them. Step 6 is a nice-to-have.</p></div>
   </section>
 
-  <!-- 07 CUSTOMIZE -->
+  <!-- 07 SURFACES -->
+  <section class="section" id="surfaces">
+    <h1>Use it in every Claude surface</h1>
+    <p class="lead">Terminal, VS Code, JetBrains, the desktop app, and cloud/Cowork — one committed file makes Product Brain load in all of them.</p>
+
+    <div class="callout"><p><strong>Why this matters.</strong> "Claude Code" runs in several places, and they don't share one plugin store. Running <code>/plugin install</code> registers the plugin in <em>only</em> the one Claude Code CLI you typed it in — that's why it can be missing from VS Code, the desktop app, or a cloud session. The fix is to <strong>declare the marketplace in your hub's <code>.claude/settings.json</code></strong> (committed, no machine paths). The setup wizard writes this for you.</p></div>
+
+    <pre><code>// &lt;hub&gt;/.claude/settings.json — commit this
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "extraKnownMarketplaces": {
+    "product-brain": { "source": { "source": "github", "repo": "Whotan/product-brain" } }
+  },
+  "enabledPlugins": { "product-brain@product-brain": true }
+}</code></pre>
+    <p>When someone opens the hub and trusts the folder, Claude Code offers to install the declared marketplace and plugin; <code>/reload-plugins</code> (or a fresh session) activates it. Here's each surface:</p>
+
+    <table>
+      <thead><tr><th>Surface</th><th>How to get Product Brain there</th><th>Good to know</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Claude Code CLI</strong> (terminal)</td>
+          <td>Paste <code>/plugin marketplace add Whotan/product-brain</code> → <code>/plugin install product-brain@product-brain</code> → <code>/reload-plugins</code>. Or just open a hub that has the settings file above.</td>
+          <td>The one place <code>/plugin</code> fully lives.</td>
+        </tr>
+        <tr>
+          <td><strong>VS Code extension</strong></td>
+          <td>Open the hub and accept the install prompt, or type <code>/plugins</code> in the extension to add the marketplace from its graphical manager.</td>
+          <td>Shares the CLI's user-scope <code>~/.claude/</code>. If a CLI-installed plugin doesn't appear, run <em>Developer: Reload Window</em>.</td>
+        </tr>
+        <tr>
+          <td><strong>JetBrains extension</strong></td>
+          <td>Use the built-in terminal — the same <code>/plugin</code> commands — or open a hub with the settings file.</td>
+          <td>No graphical plugin manager yet; manage from the terminal.</td>
+        </tr>
+        <tr>
+          <td><strong>Claude Desktop app</strong></td>
+          <td>Its <strong>Code</strong> tab runs Claude Code: use the desktop plugin browser, the <code>/plugin</code> commands, or open a hub with the settings file.</td>
+          <td>Shares <code>~/.claude/</code> with the CLI.</td>
+        </tr>
+        <tr>
+          <td><strong>Cloud / on the web / Cowork</strong></td>
+          <td>Commit the settings file to the hub — cloud sessions read <code>enabledPlugins</code> from it. <strong>For Cowork, also</strong> upload the skill to your claude.ai account once: run <code>bin/package-skill.sh</code> → upload <code>dist/brainify.skill</code> at <em>claude.ai → Settings → Features</em>.</td>
+          <td>Cloud can't see your local <code>~/.claude/</code>. Repo-committed config (or the account skill) is the only way in — a fresh cloud agent needs the skill available before it can run setup.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout"><p><strong>The takeaway:</strong> configure it once in the hub's <code>.claude/settings.json</code>, and every teammate — on every surface, including the cloud — gets the same offer to load Product Brain. No per-machine hand-installing.</p></div>
+  </section>
+
+  <!-- 08 CUSTOMIZE -->
   <section class="section" id="customize">
     <h1>Customize it — just ask Claude</h1>
     <p class="lead">The templates are starting points. You almost never edit them by hand — you tell Claude what you want in plain English, and it makes the change.</p>

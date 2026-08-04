@@ -198,7 +198,7 @@ from the plugin and report up to date) and "set up product brain" (the skill sho
 
 ### Versions & updates
 
-The framework version lives in `VERSION` (currently `0.2.0`) and is stamped into the skill's
+The framework version lives in `VERSION` (currently `0.3.0`) and is stamped into the skill's
 frontmatter. Check what you have — and whether your installed skill is current — with:
 
 ```bash
@@ -233,6 +233,42 @@ it does any work, and forces that provider even if other providers' keys are als
 Keep API keys in environment variables — never commit them to the hub.
 
 That's it. Ask Claude about your product, your code, or your decisions.
+
+---
+
+## Using Product Brain in every Claude surface
+
+"Claude Code" runs in several places, and **they don't share one plugin store.** `/plugin install`
+only registers the plugin in the *one* Claude Code CLI you ran it in. To make Product Brain available
+everywhere — the terminal, your IDE, the desktop app, and cloud/Cowork sessions — the reliable trick
+is to **declare the marketplace in your hub's `.claude/settings.json`** (committed, path-free).
+`brainify` writes this for you during setup; here's the file and what each surface does with it.
+
+```json
+// <hub>/.claude/settings.json  — commit this; it has no machine paths
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "extraKnownMarketplaces": {
+    "product-brain": { "source": { "source": "github", "repo": "Whotan/product-brain" } }
+  },
+  "enabledPlugins": { "product-brain@product-brain": true }
+}
+```
+
+When anyone opens the hub and trusts the folder, Claude Code offers to install the declared
+marketplace + plugin; a `/reload-plugins` (or a new session) activates it. Per surface:
+
+| Surface | How Product Brain gets there | Notes |
+|---|---|---|
+| **Claude Code CLI** (terminal) | `/plugin marketplace add Whotan/product-brain` → `/plugin install product-brain@product-brain` → `/reload-plugins`. Or just open a hub that has the `.claude/settings.json` above. | The one place `/plugin` fully lives. |
+| **VS Code extension** | Open the hub → accept the install prompt. Or type `/plugins` in the extension to add the marketplace via its graphical manager. | Shares the CLI's user-scope `~/.claude/`. If a CLI-installed plugin doesn't show, run **Developer: Reload Window**. |
+| **JetBrains extension** | Use the built-in terminal: the same `/plugin` CLI commands, or open a hub with the settings file. | No graphical plugin manager — manage from the terminal. |
+| **Claude Desktop app** | Its **Code** tab runs Claude Code — use the desktop plugin browser, or the same `/plugin` commands, or open a hub with the settings file. | Shares `~/.claude/` with the CLI. |
+| **Cloud / Claude Code on the web / Cowork** | Commit the `.claude/settings.json` above to the hub — cloud sessions read `enabledPlugins` from it. **For Cowork also** upload the skill to your claude.ai account once (`bin/package-skill.sh` → `dist/brainify.skill` → **claude.ai → Settings → Features**), since a fresh cloud agent needs the `brainify` skill available before it can run setup. | Cloud can't see your local `~/.claude/` — repo-committed config (or the account skill) is the only way in. |
+
+**Why the settings-file approach wins:** it's config-as-code. Every teammate, on every surface, opening
+the hub gets the same offer to load Product Brain — no one hand-installs a plugin per machine, and it
+travels with the repo into cloud sessions.
 
 ---
 

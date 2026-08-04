@@ -1,6 +1,6 @@
 ---
 name: brainify
-version: 0.2.0
+version: 0.3.0
 description: Set up, refresh, and maintain a Product Brain hub — a single, method-agnostic source of truth for product knowledge across one or more code repos. Use when the user says "set up product brain", "brainify", "create a hub", "audit our setup", "what's missing from our brain", "what should I do next", or wants to refresh/update the brain — e.g. "update me", "update the brain", "refresh the brain", "sync the graph", "rebuild the graph", "pull the latest" — in a Product Brain context.
 ---
 
@@ -111,6 +111,15 @@ fi
 
 # graphify installed?
 pip show graphifyy 2>/dev/null | grep "^Version" || echo "graphify: NOT_INSTALLED"
+
+# Multi-surface: does .claude/settings.json declare the plugin marketplace?
+# (this is what makes Product Brain load in VS Code, the desktop app, and cloud/Cowork
+# sessions that open the hub — not just the CLI where someone ran /plugin install)
+if [ -f .claude/settings.json ] && grep -q "extraKnownMarketplaces" .claude/settings.json; then
+  echo "surfaces: PRESENT (marketplace declared in .claude/settings.json)"
+else
+  echo "surfaces: ABSENT (plugin only reachable where it was installed by hand)"
+fi
 ```
 
 ---
@@ -128,6 +137,7 @@ Render a compact table with ✅ / ⚠️ / ❌ and a one-line note each:
 | Docs | registered doc types populated | ✅/⚠️/❌ |
 | Graph | `graph/graph.json` built & fresh (<7d) | ✅/⚠️/❌ |
 | Tool | graphify installed | ✅/❌ |
+| Surfaces | `.claude/settings.json` declares the marketplace (loads in IDE/desktop/cloud, not just CLI) | ✅/➖ |
 
 Rules: ✅ present & healthy · ⚠️ present but thin/stale · ❌ missing (required) · ➖ absent (recommended only). Follow with a **Priority gaps** list ordered by the sequence below; treat missing required items first. One gap at a time.
 
@@ -178,11 +188,23 @@ registers it in `brain.config.json`. After that there's a single copy (in the hu
 `--copy`; a copy leaves a stale duplicate, which is exactly the drift we avoid. (Moving via `adopt` is
 a one-time relocation — that's fine; an ongoing *mirror* of a separate copy is what we never do.)
 
-**Fewer permission prompts for the team.** Copy `hub-settings.template.json` to the hub's
-`.claude/settings.json` (create `.claude/` if needed). It pre-allows the safe, path-free commands the
-team runs (`pb sync`, `pb status`, `graphify`, read-only `git`) so teammates aren't prompted for each
-one. It's safe to commit — it contains no machine paths. Personal approvals still go in the untracked
-`.claude/settings.local.json`.
+**Make Product Brain reachable in every surface (important).** Copy `hub-settings.template.json` to
+the hub's `.claude/settings.json` (create `.claude/` if needed). This file does two things, and it's
+safe to commit (no machine paths):
+
+1. **Declares the plugin marketplace** (`extraKnownMarketplaces` + `enabledPlugins`). A plugin
+   installed by hand with `/plugin` only exists in *that one* Claude Code CLI. Declaring it in the
+   hub's committed settings is what makes Product Brain load for anyone who opens the hub in **any**
+   surface — VS Code/JetBrains, the desktop app, and **cloud/Cowork sessions** — not just the CLI
+   where it was installed. When a teammate trusts the hub folder, Claude Code prompts them to install
+   the declared marketplace + plugin; then `/reload-plugins` activates it.
+2. **Pre-allows the safe, path-free commands** the team runs (`pb sync`, `pb status`, `graphify`,
+   read-only `git`) so teammates aren't prompted for each one.
+
+Personal approvals still go in the untracked `.claude/settings.local.json`. Tell the user plainly:
+"I've set the hub up so Product Brain loads automatically for anyone who opens it — in the terminal,
+in VS Code, in the desktop app, or on the web." For **Cowork specifically**, note the one extra option
+below (the account-level skill), since a cloud session needs the skill available before it can run me.
 
 Create `docs/<type>/` for each registered type. The pulled apps land in a **visible `repos/`** folder
 and the map in `graph/`; `pb sync` keeps both out of Git automatically (via `.git/info/exclude`, so
