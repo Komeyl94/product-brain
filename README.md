@@ -170,6 +170,32 @@ large/noisy monorepos are noted in the architecture doc's open problems.)
 then pulls each tracked app repo, then rebuilds the graph **incrementally** — graphify caches by
 content hash, so only changed files are re-read. Use `--no-hub-pull` to skip the hub pull.
 
+### Upgrading from the script install
+
+Earlier versions installed via `bin/install-skill.sh`, which **copied** the skill into
+`~/.claude/skills/brainify` and symlinked `pb` into `~/.local/bin/pb`. If you now install the plugin
+on top of that, you'll have **two** brainify skills and **two** `pb`s — and the stale one may win
+depending on PATH order. Remove the old install first, then add the plugin. **Your hubs are
+untouched** — this only changes how the tooling is installed.
+
+```bash
+# 1. Remove the old skill copy/symlink (personal — and project, if you used --project)
+rm -rf ~/.claude/skills/brainify
+rm -rf ./.claude/skills/brainify        # only if you'd installed with --project
+
+# 2. Remove the old pb symlink so the plugin's pb is the one that runs
+rm -f ~/.local/bin/pb
+```
+
+Then install the plugin (see [Quick start](#quick-start)) and verify with `pb version` (should run
+from the plugin and report up to date) and "set up product brain" (the skill should start its audit).
+
+- If you kept a local clone of this repo **only** to run the installer, you can delete it now — the
+  plugin carries everything. Still developing *on the framework*? Keep the clone and `git pull` it.
+- The `export PATH=".../.local/bin:…"` line you added to your shell profile is now harmless; leave or
+  remove it.
+- From here, updates are just `/plugin marketplace update` — no more re-running `install-skill.sh`.
+
 ### Versions & updates
 
 The framework version lives in `VERSION` (currently `0.1.7`) and is stamped into the skill's
