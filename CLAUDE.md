@@ -31,6 +31,24 @@ ships the skill and puts `pb` on PATH — no `~/.local/bin` symlink, no PATH edi
 only a fallback. The `.skill` bundle is generated on demand into `dist/` (gitignored) — never commit
 a built skill bundle. Keep `plugin.json`'s `version` in sync with `VERSION`.
 
+## Cutting a release (don't skip the version bump)
+
+`plugin.json` pins a `version`, so **an already-installed plugin only updates when that field
+changes** — pushing to `main` alone ships nothing to existing users (a fresh install always gets
+`main`, but an update does not). Every release:
+
+1. Commit and push the changes to `main`.
+2. **Bump all three in lockstep:** `VERSION`, `.claude-plugin/plugin.json` `version`, and the
+   `version:` in `skills/brainify/SKILL.md` frontmatter. Use semver (feature → minor, fix → patch).
+   Also update the `currently \`x.y.z\`` mention in `README.md`.
+3. Commit the bump, push, and tell users to run `/plugin marketplace update product-brain` then
+   `/reload-plugins` (auto-update users get it in the background after a session starts).
+
+The marketplace **name** is `product-brain` and the plugin **name** is `product-brain`, so the install
+ref is `product-brain@product-brain`; the repo path for `/plugin marketplace add Whotan/product-brain`
+is separate from the marketplace name. Renaming the marketplace forces existing users to
+remove + re-add it (a plain `update` hits a name mismatch), so avoid renames.
+
 ## What a hub looks like (what the templates build)
 
 Required core: `constitution.md`, `vocabulary.md`. Recommended (graph-assisted): `domains.md`.
