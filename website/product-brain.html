@@ -394,30 +394,25 @@
     <h1>Setup guide</h1>
     <p class="lead">About 15 minutes — and you can ask Claude to do every command for you.</p>
 
-    <div class="callout"><p><strong>Not technical? You're fine.</strong> You don't need to know git, Python, or how to install anything. Just ask Claude to do each step ("install the tools", "create the hub", "refresh") and it runs them and tells you what happened in plain words. The <em>only</em> step that might need a technical teammate, once, is creating the hub on GitHub and signing in the first time. Everything after setup is just asking questions — no commands at all.</p></div>
+    <div class="callout"><p><strong>Not technical? You're fine.</strong> You don't need to know git or how any of this works. Adding Product Brain is one paste (step 1); after that you just ask Claude to "create the hub" and "refresh", and it runs everything and explains in plain words. Two things may need a technical teammate, once: making sure <strong>Python</strong> is on the computer (the map builder needs it), and — if you want the hub shared — creating it on GitHub. Everything after setup is just asking questions — no commands at all.</p></div>
 
     <p>The steps below show the commands for reference. If you're non-technical, read them as "things to ask Claude to do," not things you type.</p>
 
-    <div class="step"><div class="num">1</div><div class="body"><h3>Install the two tools</h3>
-      <p>graphify builds the map; Claude (Cowork or Claude Code) runs the wizard and answers questions.</p>
-      <pre><code>pip install graphifyy        # the map builder; no AI key needed for code
-graphify --version</code></pre>
-      <p>Code and recordings are processed locally and need no key. Only the document/image step uses an AI provider — and you choose which one (Gemini, Claude, OpenAI, …). For Gemini, set a key once:</p>
-      <pre><code>export GEMINI_API_KEY=your-key   # then: pb sync --provider gemini</code></pre></div></div>
-
-    <div class="step"><div class="num">2</div><div class="body"><h3>Add the brainify skill to Claude</h3>
-      <p>This is the wizard. It ships in this project under <code>skills/brainify/</code>.</p>
-      <p>Claude Code and Cowork only auto-discover skills from <code>~/.claude/skills/</code> (personal, all projects) or a project's <code>.claude/skills/</code>. The skill ships here under <code>skills/brainify/</code>, so copy it into one of those. The bundled installer does it for you:</p>
-      <pre><code># personal — available in every project (recommended)
-/path/to/product-brain/bin/install-skill.sh
-
-# or project-only (this repo), shareable via git
-/path/to/product-brain/bin/install-skill.sh --project</code></pre>
+    <div class="step"><div class="num">1</div><div class="body"><h3>Add Product Brain to Claude</h3>
+      <p>Product Brain ships as a <strong>Claude Code plugin</strong>. Installing it adds the setup wizard (the <code>brainify</code> skill) <em>and</em> the <code>pb</code> tool at once — no scripts, no PATH editing, no copying files. In Claude Code, paste:</p>
+      <pre><code>/plugin marketplace add Whotan/product-brain
+/plugin install product-brain@product-brain
+/reload-plugins</code></pre>
       <ul>
-        <li><strong>In Cowork:</strong> you can also open <em>Settings → Capabilities</em> and add the <code>brainify</code> skill (or install the Product Brain plugin if your team publishes one).</li>
-        <li><strong>No restart needed:</strong> Claude Code watches the skills folder and picks it up in the current session.</li>
+        <li><strong>In Cowork:</strong> plugins are a Claude Code feature. For Cowork, add the <code>brainify</code> skill to your claude.ai account once — run <code>bin/package-skill.sh</code> to build <code>dist/brainify.skill</code>, then upload it at <em>Settings → Features</em>. It's then available in every Cowork chat.</li>
+        <li><strong>Can't use plugins?</strong> <code>bin/install-skill.sh</code> is a fallback that copies the skill into <code>~/.claude/skills</code>.</li>
         <li><strong>Quick check:</strong> say "set up product brain" — if Claude starts the audit, it's installed.</li>
       </ul></div></div>
+
+    <div class="step"><div class="num">2</div><div class="body"><h3>The wizard installs the rest for you</h3>
+      <p>When you set up a hub, the wizard installs <strong>graphify</strong> (the map builder) itself — you don't run <code>pip</code>. The one thing that must already be on the computer is <strong>Python</strong>; if it's missing, Claude tells you the single thing to install (or a teammate installs it once).</p>
+      <p>Code and recordings are processed locally and need no AI key. Only the document/image step uses an AI provider — and it's <strong>optional</strong>: with no key, the map is built from your code alone and Claude tells you so. To include documents, choose a provider (Gemini, Claude, OpenAI, …) and set a key once:</p>
+      <pre><code>export GEMINI_API_KEY=your-key   # optional — enables document understanding</code></pre></div></div>
 
     <div class="step"><div class="num">3</div><div class="body"><h3>Create the hub</h3>
       <p>Make a new, empty Git repository for the hub (e.g. <code>acme-brain</code>). This is where your knowledge lives — and where you'll work. You give the wizard each app's <strong>git URL</strong>, and it clones them into a <code>repos/</code> folder inside the hub as <strong>full working copies you develop in</strong>. So your code sits right next to the specs, rules, and the map — and because you edit the real code in place, everything stays current with no separate copies to go stale.</p></div></div>
@@ -426,9 +421,10 @@ graphify --version</code></pre>
       <p>Open the hub in Claude and say <strong>"Set up product brain."</strong> It walks you through declaring your apps, writing your rules and glossary, and choosing your doc types — one step at a time.</p></div></div>
 
     <div class="step"><div class="num">5</div><div class="body"><h3>Refresh</h3>
-      <pre><code>/path/to/product-brain/bin/pb --hub . sync     # pull apps + build the map
-pb sync --dry-run                               # preview without building</code></pre>
-      <p>Tip: add <code>bin/</code> to your <code>PATH</code> so you can just type <code>pb sync</code>.</p></div></div>
+      <p>Just say <strong>"refresh the brain"</strong> and Claude does it. Under the hood that's <code>pb sync</code> — and with the plugin installed, <code>pb</code> is already on your <code>PATH</code>, so developers can run it directly too:</p>
+      <pre><code>pb sync              # pull apps + build the map
+pb sync --dry-run    # preview without building</code></pre>
+      <p>Without the plugin, run it by path — no PATH edit needed: <code>python3 /path/to/product-brain/bin/pb --hub . sync</code>.</p></div></div>
 
     <div class="step"><div class="num">6</div><div class="body"><h3>(Optional) Make an app aware of the hub</h3>
       <p>Paste <code>templates/app-repo-claude-md-snippet.md</code> into an app repo's <code>CLAUDE.md</code> so Claude working inside that app automatically uses the hub's glossary, specs, and rules. It's the only thing you ever add to an app, it's optional, and nothing breaks without it.</p></div></div>

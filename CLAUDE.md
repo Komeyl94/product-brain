@@ -20,9 +20,16 @@ separate hub repo created by running `brainify`.
 | Purpose | Path |
 |---|---|
 | Setup/maintenance skill | `skills/brainify/SKILL.md` |
+| Plugin + marketplace manifests (primary install path) | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` |
+| Hub CLI + tooling | `bin/pb`, `bin/package-skill.sh` (Cowork bundle), `bin/install-skill.sh` (fallback) |
 | Hub templates | `templates/` |
 | Architecture & open problems | `docs/multi-repo-architecture.md` |
-| Documentation site | `website/product-brain.html` |
+| Guides & documentation site | `docs/getting-started.md`, `docs/introduction.md`, `website/product-brain.html` |
+
+**Install is plugin-first.** The repo is a Claude Code plugin (`source: "."`); `/plugin install`
+ships the skill and puts `pb` on PATH — no `~/.local/bin` symlink, no PATH edit. `install-skill.sh` is
+only a fallback. The `.skill` bundle is generated on demand into `dist/` (gitignored) — never commit
+a built skill bundle. Keep `plugin.json`'s `version` in sync with `VERSION`.
 
 ## What a hub looks like (what the templates build)
 

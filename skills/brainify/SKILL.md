@@ -61,16 +61,25 @@ they won't understand. Instead:
   `git` (add/commit), run it yourself in the shell and report the result in plain language. Never
   hand a non-technical user a command to paste unless they ask for it.
 - **Check the toolbox first, fix gaps quietly.** Before relying on a tool, check it exists:
-  `command -v python3 pip3 git graphify`. If `graphify` is missing, install it for them
-  (`pip install graphifyy --break-system-packages`). If Python/pip itself is missing, tell them in
-  one friendly sentence what to install (or that a teammate can), and offer to continue with
-  everything that doesn't need it.
+  `command -v python3 pip3 git graphify`. If `graphify` is missing, install it for them — try in
+  order until one works: `pipx install graphifyy`, then `python3 -m pip install --user graphifyy`,
+  then `python3 -m pip install graphifyy --break-system-packages`; if all fail, show the real error,
+  don't hide it. **Python is the one irreducible prerequisite** (both `pb` and graphify are Python).
+  If Python is missing, tell them in one friendly sentence what to install (or that a teammate can),
+  and offer to continue with everything that doesn't need it.
+- **No API key? That's OK — say so, don't stall.** The graph's doc/image pass uses an LLM key, but
+  code parsing is local and free. If no key is set, `pb sync` builds a **code-only** graph and prints
+  a note; proceed with it and offer to add a key later for richer doc understanding. Never block setup
+  on a key.
 - **The one thing that may need a technical teammate, once:** creating the hub repository on a host
   (GitHub/GitLab) and signing in the first time (SSH keys / auth). If that's not set up, you can
   still create the hub as a local folder and do everything else; note that pushing to a shared host
   is a one-time setup a teammate can help with.
 - **After setup, there are no commands to learn.** The user just talks to you. Make that explicit:
   "From here on, you don't need any commands — just ask me questions."
+- **How to run `pb`.** When the Product Brain plugin is installed, `pb` is already on `PATH` — just
+  run `pb …`. If it isn't found, run it by path instead: `python3 <framework>/bin/pb --hub <hub> …`
+  (where `<framework>` is this cloned product-brain repo). Never tell the user to edit their `PATH`.
 
 ---
 
@@ -169,6 +178,12 @@ registers it in `brain.config.json`. After that there's a single copy (in the hu
 `--copy`; a copy leaves a stale duplicate, which is exactly the drift we avoid. (Moving via `adopt` is
 a one-time relocation — that's fine; an ongoing *mirror* of a separate copy is what we never do.)
 
+**Fewer permission prompts for the team.** Copy `hub-settings.template.json` to the hub's
+`.claude/settings.json` (create `.claude/` if needed). It pre-allows the safe, path-free commands the
+team runs (`pb sync`, `pb status`, `graphify`, read-only `git`) so teammates aren't prompted for each
+one. It's safe to commit — it contains no machine paths. Personal approvals still go in the untracked
+`.claude/settings.local.json`.
+
 Create `docs/<type>/` for each registered type. The pulled apps land in a **visible `repos/`** folder
 and the map in `graph/`; `pb sync` keeps both out of Git automatically (via `.git/info/exclude`, so
 graphify can still read `repos/`) and writes a managed `.graphifyignore`. Don't add `repos/` to a
@@ -179,13 +194,20 @@ shared when the hub is pushed to a remote.
 
 ### Phase B — Install graphify
 
-Run this **for** the user (don't ask them to). First confirm Python/pip exist
-(`command -v python3 pip3`); if they don't, tell the user in one sentence what to install or that a
-teammate can, and continue with steps that don't need it.
+Run this **for** the user (don't ask them to). First confirm Python exists
+(`command -v python3`); if it doesn't, tell the user in one sentence what to install or that a
+teammate can, and continue with steps that don't need it. Then install graphify, trying each until
+one succeeds (environments differ — some block system-wide installs):
 
 ```bash
-pip install graphifyy --break-system-packages && graphify --version
+pipx install graphifyy \
+  || python3 -m pip install --user graphifyy \
+  || python3 -m pip install graphifyy --break-system-packages
+graphify --version
 ```
+
+If all three fail, show the actual error rather than hiding it — it's usually a missing Python/pip or
+a locked-down machine a teammate can help with.
 
 ### Phase C — First `pb sync` (build the graph first)
 
@@ -203,6 +225,12 @@ is free and local, and since there are few/no docs yet, this first build is chea
 ```
 
 **Choose the LLM provider.** Only the doc/image pass uses an LLM (code + audio/video are local). Product Brain is provider-agnostic — Gemini, Claude, OpenAI, Kimi, DeepSeek, or local Ollama. Ask the user which they want (or read `graph.provider` from `brain.config.json`). Make sure the matching key is set in the environment — for Gemini, `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) — then run `pb sync --provider <name>` (or set `graph.provider`). **Never** write an API key into the hub or a memory file; it's an environment variable the user/teammate sets.
+
+**No key yet? Build anyway.** If the user has no key, don't stall the setup: run `pb sync` as-is. It
+builds a **code-only** graph (code is parsed locally, free) and records a note in
+`graph/sync-report.md`. The vocabulary/domains steps still work off the code symbols; offer to add a
+key and re-sync later to fold in document understanding. Only when the user *explicitly picks* a
+provider does a missing key stop the run (that's a config mistake worth surfacing).
 
 If a `pb` CLI isn't available, perform the steps directly: clone each repo into `repos/<id>`, exclude `repos/` and `graph/` via `.git/info/exclude`, then run graphify over the hub into `graph/` (graphify auto-detects the provider from the env keys; Gemini has top priority).
 

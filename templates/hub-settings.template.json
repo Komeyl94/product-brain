@@ -1,0 +1,16 @@
+{
+  "//": "brainify writes this to a new hub's .claude/settings.json so the team gets fewer permission prompts. Path-free and safe to commit — it never contains anyone's machine paths. Personal approvals still go in the untracked .claude/settings.local.json.",
+  "permissions": {
+    "allow": [
+      "Bash(pb sync:*)",
+      "Bash(pb status)",
+      "Bash(pb find:*)",
+      "Bash(pb version:*)",
+      "Bash(pb adopt:*)",
+      "Bash(graphify:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ]
+  }
+}

@@ -8,3 +8,10 @@
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Generated skill bundle (built on demand by bin/package-skill.sh)
+dist/
+
+# Per-machine Claude settings (contains local paths — never commit). The shared,
+# path-free .claude/settings.json IS committed.
+.claude/settings.local.json

@@ -1,0 +1,11 @@
+{
+  "name": "product-brain",
+  "owner": { "name": "Product Brain maintainers" },
+  "plugins": [
+    {
+      "name": "product-brain",
+      "source": ".",
+      "description": "The brainify skill + pb CLI: create and maintain a Product Brain hub. Installing puts pb on PATH and makes 'set up product brain' available — no manual copy, no PATH editing."
+    }
+  ]
+}

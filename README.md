@@ -60,10 +60,18 @@ This separation is what keeps the framework method-neutral and your hub clean.
 product-brain/
   README.md                         ← you are here
   CLAUDE.md                         ← framework guidance for Claude
+  .claude-plugin/                   ← makes this repo a Claude Code plugin + marketplace
+    plugin.json                     one-command install of the skill + pb CLI
+    marketplace.json
   docs/
+    getting-started.md              ← no-jargon guide for everyone
     multi-repo-architecture.md      ← the full architecture proposal
   skills/
     brainify/SKILL.md               ← the setup & maintenance skill
+  bin/
+    pb                              the hub CLI (on PATH automatically via the plugin)
+    package-skill.sh                build the Cowork upload bundle on demand
+    install-skill.sh                fallback installer (when you can't use plugins)
   templates/                        ← what a hub is made of (method-agnostic)
     brain.config.template.json
     constitution-template.md
@@ -84,37 +92,52 @@ product-brain/
 
 ## Quick start
 
-### 1. Install graphify
+### 1. Install the plugin (Claude Code)
 
-```bash
-pip install graphifyy        # CLI is `graphify`; no LLM key needed for code
-graphify --version
+Product Brain ships as a **Claude Code plugin**. Installing it adds the `brainify` skill *and* puts
+the `pb` CLI on your `PATH` — **no scripts, no PATH editing, no manual copying**. In Claude Code:
+
+```text
+/plugin marketplace add Whotan/product-brain
+/plugin install product-brain@product-brain
+/reload-plugins
 ```
 
-### 2. Install the brainify skill and pb CLI
+That's the entire install. (`graphify`, the local graph builder, is installed for you the first time
+you set up a hub — see step 2.)
 
-One script installs both: the skill (so Claude Code discovers it) and the `pb` CLI (linked into `~/.local/bin/pb` so you can just type `pb`):
+> **Using Cowork instead of Claude Code?** Plugins are a Claude Code feature. For Cowork, add the
+> skill to your claude.ai account once: run `bin/package-skill.sh` to build `dist/brainify.skill`,
+> then upload it at **claude.ai → Settings → Features**. After that, "set up product brain" works in
+> any Cowork chat. (There's no supported way to auto-install a skill mid-session, so this one-time
+> account step is required.)
+>
+> **Can't use plugins at all?** `bin/install-skill.sh` is a fallback that copies the skill into
+> `~/.claude/skills` and optionally symlinks `pb`.
 
-```bash
-bin/install-skill.sh            # installs skill + pb (recommended)
-bin/install-skill.sh --project  # skill into ./.claude/skills instead of ~/.claude/skills
-bin/install-skill.sh --no-pb    # skill only, skip pb
-bin/install-skill.sh --pb-dir /usr/local/bin   # install pb into a different directory
-```
+### 2. Create your hub — just ask
 
-If `~/.local/bin` isn't on your `PATH` yet, the script will tell you what to add to your shell profile. No restart needed — Claude Code picks up the skill live.
-
-### 3. Create your hub
-
-Make a new git repo for your hub and run Claude in it:
+Open Claude in a new folder for your hub and say:
 
 > **"Set up product brain"**
 
-`brainify` audits what's there, then walks you through it one step at a time: declaring your repos in `brain.config.json`, writing the required core (constitution, vocabulary), mapping domains from the graph, registering the doc types you want, and building the graph.
+`brainify` does the technical parts **for you**: it installs `graphify` if it's missing, creates the
+hub, and walks you through it one step at a time — declaring your repos in `brain.config.json`,
+writing the required core (constitution, vocabulary), mapping domains from the graph, registering the
+doc types you want, and building the graph. No git or Python knowledge required (Python just needs to
+be present on the machine — the one prerequisite).
 
-### 4. Sync
+### 3. From here on, just talk
 
-Run `pb` from your hub (installed in step 2 — if you skipped it, use `bin/pb` from this repo instead):
+There are no commands to learn. Ask questions ("How does checkout work across both apps?"), add
+knowledge ("record this decision"), and refresh with **"update the brain."** Under the hood that runs
+`pb sync`, but you never have to.
+
+<details>
+<summary>The <code>pb</code> commands (for developers who want them)</summary>
+
+With the plugin installed, `pb` is on your `PATH`. Without it, run `python3 <clone>/bin/pb …` — no
+PATH edit needed.
 
 ```bash
 pb sync                          # pull the hub + tracked repos, rebuild the graph
@@ -124,6 +147,7 @@ pb find session                  # look up code symbols in the graph
 pb sync --dry-run                # preview without running graphify
 pb sync --rebuild                # ignore the cache and rebuild from scratch
 ```
+</details>
 
 `pb adopt <path>` is a one-time migration for developers who already have a repo checked out: it
 **moves** that checkout into the hub's `repos/<id>` (keeping history, branches, remote, and
@@ -156,10 +180,11 @@ pb version          # framework version + commit + whether your installed skill 
 pb version --check  # also fetches and tells you if a newer version is available upstream
 ```
 
-**pb** is always installed as a symlink, so `git pull` in this repo is all you need — `pb` updates automatically.
+**Plugin (recommended):** update everything — skill *and* `pb` — with `/plugin marketplace update`
+in Claude Code. Nothing to re-run.
 
-**Skill** (copy mode, the default): re-run `bin/install-skill.sh` after pulling updates.
-**Skill** (`--link` mode): also updates automatically on pull — nothing to re-run.
+**Fallback installs:** if you used `bin/install-skill.sh` in copy mode, re-run it after `git pull`;
+in `--link` mode (and for the `pb` symlink), a `git pull` in this repo is enough.
 
 ### Choose your AI provider (Gemini, Claude, OpenAI, …)
 
@@ -233,4 +258,7 @@ The graph is built with [graphify](https://pypi.org/project/graphifyy/), which p
 
 ## Full documentation
 
-Open `website/product-brain.html` in a browser, or read `docs/multi-repo-architecture.md` for the architecture and open problems.
+- **[docs/getting-started.md](docs/getting-started.md)** — a no-jargon walkthrough for everyone (start here if you're not technical).
+- **[docs/introduction.md](docs/introduction.md)** — what Product Brain is and why, in plain language.
+- **[docs/multi-repo-architecture.md](docs/multi-repo-architecture.md)** — the full architecture and open problems.
+- **`website/product-brain.html`** — the documentation site (open in a browser).

@@ -20,43 +20,43 @@ questions.
 
 | Step | You can ask Claude | May need a teammate once |
 |---|---|---|
-| Install the tools | ✅ | — |
-| Add the setup wizard (brainify) | ✅ | — |
+| Add Product Brain to Claude | ✅ (one paste) | — |
 | Create the hub folder | ✅ (local) | If it should live on GitHub/GitLab |
 | Write your rules, words, decisions | ✅ (Claude interviews you) | — |
 | Refresh (build the map) | ✅ | — |
 | Ask questions, forever | ✅ | — |
 
+*(The one thing that must already be on the computer is **Python** — the map builder needs it. If it's
+missing, Claude tells you the single thing to install, or a teammate installs it once.)*
+
 ---
 
 ## Step by step
 
-### 1. Install the tools
-Ask Claude: **"Install the Product Brain tools."** It installs graphify (the map builder). If
-Python isn't on the machine, Claude will tell you in one sentence what to install, or that a
-teammate can — and continue with everything else.
+### 1. Add Product Brain to Claude (once)
+- **In Claude Code:** paste these three lines. They add everything — the setup wizard *and* the
+  behind-the-scenes tool — with nothing to configure:
+  ```text
+  /plugin marketplace add Whotan/product-brain
+  /plugin install product-brain@product-brain
+  /reload-plugins
+  ```
+- **In Cowork:** a teammate adds the **brainify** skill to your claude.ai account once
+  (Settings → Features). After that it's available in all your Cowork chats.
+- **Check it worked:** type "set up product brain" — if Claude starts a checklist, you're set.
 
-### 2. Add the setup wizard
-The wizard is a Claude skill called **brainify**. Add it once:
-- **Cowork:** Settings → Capabilities → add the `brainify` skill.
-- **Claude Code:** copy the `skills/brainify/` folder into your project's skills directory.
-- **Check:** type "set up product brain" — if Claude starts a checklist, it's working.
+### 2. Create the hub and set it up
+Say: **"Set up product brain."** Claude does the technical parts for you — it installs the map
+builder if needed, makes the hub, and asks you simple questions one at a time (your rules, your key
+words, your product's main areas), writing the files as you go. You review and tweak; nothing is final
+until you say so. If you want the hub shared on GitHub, a technical teammate can connect it once.
 
-### 3. Create the hub
-Ask Claude: **"Create a Product Brain hub for our team."** It makes the folder and sets it up. If
-you want it shared on GitHub, a technical teammate can connect it once.
-
-### 4. Run the wizard
-Say: **"Set up product brain."** Claude asks you simple questions, one at a time — your rules, your
-key words, your product's main areas — and writes the files for you. You review and tweak; nothing
-is final until you say so.
-
-### 5. Refresh
+### 3. Refresh
 Ask Claude: **"Update me"** or **"Refresh the brain."** It pulls everyone's latest hub changes and
 your apps' latest code, then rebuilds the map. The first time takes a minute or two; after that it's
 quick, because it only re-reads what changed.
 
-### 6. Ask anything
+### 4. Ask anything
 That's it. From now on, you and your teammates just ask questions:
 - "How does checkout work across both apps?"
 - "Why did we choose soft-delete?"

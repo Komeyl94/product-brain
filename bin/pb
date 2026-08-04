@@ -270,11 +270,25 @@ def ensure_exclusions(hub: Path, rdir: Path, out: Path, repos: list, dry: bool):
             gfi.write_text("\n".join(wanted_lines) + "\n")
 
 
+def any_llm_key() -> bool:
+    """True if any provider's key is set in the environment."""
+    return any(os.environ.get(k) for k in ALL_PROVIDER_KEYS)
+
+
+def code_only_mode(provider: str) -> bool:
+    """A code-only graph is built when no provider is forced AND no LLM key is present:
+    graphify still parses code locally (free), but docs/images get no semantic pass."""
+    return (not provider or provider == "auto") and not any_llm_key()
+
+
 def graphify_env(provider: str):
     """Return (env, label) for the chosen provider. 'auto' lets graphify decide."""
     env = os.environ.copy()
     if not provider or provider == "auto":
-        return env, "auto-detected by graphify (set GEMINI_API_KEY to prefer Gemini)"
+        if any_llm_key():
+            return env, "auto-detected by graphify (set GEMINI_API_KEY to prefer Gemini)"
+        return env, ("none — CODE-ONLY graph (no LLM key found; docs/images get no semantic "
+                     "pass). Set GEMINI_API_KEY, or another provider key, to enable it.")
     provider = provider.lower()
     keys = PROVIDER_ENV.get(provider)
     if keys is None:
@@ -299,7 +313,9 @@ def run_graphify(content_root: Path, out: Path, dry: bool, rebuild: bool, provid
         log("cache: would " + ("clear (full rebuild)" if rebuild else "reuse" if has_cache else "create"))
         return
     if not have("graphify"):
-        die("graphify not found on PATH. Install it: pip install graphifyy")
+        die("graphify not found on PATH. Install it with:  pip install graphifyy\n"
+            "      (or reinstall the Product Brain plugin / run bin/install-skill.sh, which "
+            "sets graphify up for you).")
     env, label = graphify_env(provider)
     log(f"semantic extraction provider: {label}")
     out.mkdir(parents=True, exist_ok=True)
@@ -327,17 +343,21 @@ def graph_stats(out: Path) -> str:
         return "graph.json present (could not parse stats)"
 
 
-def write_report(hub: Path, cfg: dict, out: Path, dry: bool):
+def write_report(hub: Path, cfg: dict, out: Path, dry: bool, code_only: bool = False):
     if dry:
         return
     now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     repos = ", ".join(r["id"] for r in cfg.get("repos", []))
+    coverage = ("⚠️ **code-only** — no LLM key was set, so documents and images did not get a "
+                "semantic pass. Set `GEMINI_API_KEY` (or another provider key) and re-run "
+                "`pb sync` to include them.\n\n") if code_only else ""
     report = out / "sync-report.md"
     report.write_text(
         f"# Sync report\n\n"
         f"**Last sync:** {now}\n\n"
         f"**Repos:** {repos or '(none)'}\n\n"
         f"**Graph:** {graph_stats(out)}\n\n"
+        f"{coverage}"
         f"_Run `pb sync` again after meaningful code or doc changes._\n"
     )
     log(f"wrote {report.relative_to(hub)}")
@@ -418,8 +438,14 @@ def cmd_sync(hub: Path, dry: bool, rebuild: bool, hub_pull: bool, repo_pull: boo
     provider = provider or cfg.get("graph", {}).get("provider", "auto")
     log(f"hub: {hub}")
     log(f"{len(repos)} repo(s): {', '.join(r['id'] for r in repos) or '(none)'}")
+    code_only = code_only_mode(provider)
+    if code_only:
+        # Not fatal: code parsing is local and free, so we build a useful (code-only) graph
+        # and tell the user plainly rather than silently shipping a weaker result.
+        log("NOTE: no LLM key found — building a CODE-ONLY graph (docs/images get no semantic "
+            "pass). Set GEMINI_API_KEY (or another provider key) and re-run to include them.")
     if not dry:
-        graphify_env(provider)  # validate provider + key now, before any slow work
+        graphify_env(provider)  # validate an explicitly-chosen provider's key before slow work
     if not have("git"):
         die("git not found on PATH.")
     if hub_pull:
@@ -429,7 +455,7 @@ def cmd_sync(hub: Path, dry: bool, rebuild: bool, hub_pull: bool, repo_pull: boo
     pull_repos(rdir, repos, dry, repo_pull)
     ensure_exclusions(hub, rdir, out, repos, dry)
     run_graphify(hub, out, dry, rebuild, provider)
-    write_report(hub, cfg, out, dry)
+    write_report(hub, cfg, out, dry, code_only)
     if readme:
         write_readme(hub, cfg, out, dry)
     log("done." if not dry else "dry-run complete (nothing written).")

@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
-# Install the brainify skill and the pb CLI.
+# Fallback installer for the brainify skill + pb CLI.
+#
+# PREFER THE PLUGIN. On Claude Code the recommended install needs no scripts and no PATH edits:
+#     /plugin marketplace add Whotan/product-brain
+#     /plugin install product-brain@product-brain
+#     /reload-plugins
+# That ships the skill AND puts `pb` on PATH automatically. Use this script only when you can't
+# use plugins (e.g. a plain checkout) — it copies the skill into ~/.claude/skills and, optionally,
+# symlinks `pb` onto your PATH.
 #
 # Usage:
 #   bin/install-skill.sh                    # install both skill + pb (recommended)
@@ -78,5 +86,8 @@ if [ "$INSTALL_PB" -eq 1 ]; then
 fi
 
 echo ""
-echo "   Check anytime:    pb version"
+echo "   Check anytime:    pb version   (or: python3 $PB_SRC version — no PATH needed)"
 echo "   Start using it:   open Claude Code and say \"set up product brain\""
+echo ""
+echo "   Tip: on Claude Code, the plugin install is simpler and needs no PATH edits —"
+echo "        /plugin marketplace add Whotan/product-brain && /plugin install product-brain@product-brain"

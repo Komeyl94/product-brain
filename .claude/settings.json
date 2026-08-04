@@ -1,0 +1,20 @@
+{
+  "//": "Shared, path-free permissions for people working on the Product Brain framework repo. Personal/machine-specific approvals go in the untracked settings.local.json (never committed).",
+  "permissions": {
+    "allow": [
+      "Bash(pb sync:*)",
+      "Bash(pb status)",
+      "Bash(pb find:*)",
+      "Bash(pb version:*)",
+      "Bash(pb adopt:*)",
+      "Bash(python3 bin/pb:*)",
+      "Bash(bin/pb:*)",
+      "Bash(graphify:*)",
+      "Bash(bin/package-skill.sh)",
+      "Bash(bin/install-skill.sh:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ]
+  }
+}
