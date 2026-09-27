@@ -99,7 +99,7 @@ if [ -f brand/tokens.json ]; then
 import json, hashlib, os
 try:
     t = json.load(open("brand/tokens.json", encoding="utf-8"))
-    digest = t.get("design_sha256") or t.get("source_hash") or t.get("hash")
+    digest = t.get("design_sha256")
     actual = hashlib.sha256(open("DESIGN.md", "rb").read()).hexdigest() if os.path.exists("DESIGN.md") else None
     print("stale" if digest and actual and digest != actual else "fresh")
 except Exception:
