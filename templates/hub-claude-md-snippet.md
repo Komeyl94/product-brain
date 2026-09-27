@@ -18,10 +18,30 @@ It is **method-agnostic** — specs may be written in any format, as long as the
 | `constitution.md` | Non-negotiable principles (required) |
 | `vocabulary.md` | Glossary: product ↔ code terms (required, graphed) |
 | `domains.md` | Domain map (recommended, graph-assisted) |
+| `docs/knowledge/` | Stable product facts: overview, stakeholders, feature status, metrics, ways of working (required) |
 | `docs/<type>/` | Extensible knowledge: specs, decisions, meeting-notes, … (Markdown-first; PDFs/recordings/images welcome) |
 | `workflows/<role>.md` | Role lenses |
 | `brain.config.json` | Repos to pull + registered doc types + graph settings |
 | `graph/graph.json` | The knowledge graph (built by `pb sync`) |
+
+### Where files go
+
+Keep the hub in this layout. It is what keeps the graph, the docs, and every teammate's Claude in sync.
+
+- **The top level is closed.** It holds only the files and folders above, plus `README.md`,
+  `CLAUDE.md`, `templates/`, dot-files (`.claude/`, `.mcp.json`, `.gitignore`, …) and `repos/`.
+  Never create another file or folder there.
+- **Team knowledge goes in `docs/<type>/`**, and `<type>` must be listed in `doc_types` in
+  `brain.config.json`. Pick the closest existing type. A genuinely new kind of doc? Add its type to
+  `doc_types` first (tell the user), then create `docs/<type>/`.
+- **Scratch goes in `.work/`.** Command output, API/JSON exports, and temp files (linter logs, audit
+  dumps, downloaded tickets) go in `.work/`, which is git-ignored. Put the *finding* in a doc; don't
+  commit the raw dump.
+- **One copy only.** Never duplicate a doc into a second folder. Link to it.
+- Follow the naming of files already in the folder.
+
+A check (`pb check`) runs when you finish each reply and lists new files outside this layout. Move
+them; don't work around it. If a file is the user's own and you're unsure where it belongs, ask.
 
 ### Health checks
 
@@ -94,6 +114,7 @@ never ask the user to paste one into the chat.
 - "Set up my connections" → the `connect-tools` skill.
 - "Check SonarQube on MR !<n>" → follow `docs/runbooks/check-sonarqube-on-mr.md` if the hub has it, otherwise the `review-mr` skill (git-workflow plugin).
 - "What domains do we have?" → read `domains.md` / query graph communities.
+- "Tidy the hub" / "check the layout" → run `pb check`, then propose where each listed file should go (move nothing until the user agrees).
 - "Write a spec for X" → check whether `templates/spec-template.md` exists in this hub. If it does, copy it into `docs/specs/` and fill in the details. If not, ask: "Would you like me to copy the Product Brain recommended templates into `templates/`?" If yes, create the `templates/` folder and scaffold `spec-template.md`, `doc-types/decision-template.md`, and `doc-types/meeting-note-template.md` from the Product Brain framework, then proceed with the spec. If no, create the spec using your team's own format.
 
 ### Keeping it fresh

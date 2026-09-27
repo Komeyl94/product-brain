@@ -57,11 +57,14 @@ remove + re-add it (a plain `update` hits a name mismatch), so avoid renames.
 ## What a hub looks like (what the templates build)
 
 Required core: `constitution.md`, `vocabulary.md`. Recommended (graph-assisted): `domains.md`.
-Plus: `brain.config.json` (repos + doc types), `docs/<type>/` (extensible), `workflows/<role>.md`, `graph/` (built by `pb sync`),
+Plus: `brain.config.json` (repos + doc types), `docs/<type>/` (extensible; `docs/knowledge/` is required), `workflows/<role>.md`, `graph/` (built by `pb sync`),
 `.claude/settings.json` (plugins, `PYTHONUTF8`, read-only permissions), and optionally `.mcp.json` +
 `.claude/settings.local.example.json` (from the `connect-tools` skill). Tokens live only in the
 git-ignored `.claude/settings.local.json` and are a fallback — never put a token or a `${TOKEN}`
 placeholder in a committed file, and never have a skill read or print a token value.
+The top level is closed: a new kind of content is a new registered doc type, never a new folder.
+`pb check` enforces this, and `hooks/hooks.json` runs it as a Stop hook in every session. Keep its
+allowlist (`ROOT_FILES` / `ROOT_DIRS` in `bin/pb`) in sync with the layout described in the docs.
 
 ## The graph
 

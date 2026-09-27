@@ -5,7 +5,7 @@
     { "id": "backend-api", "url": "git@github.com:acme/backend-api.git", "src": ["app/"] },
     { "id": "web-app",     "url": "git@github.com:acme/web-app.git",     "src": ["src/"], "branch": "develop", "pull": false }
   ],
-  "doc_types": ["specs", "decisions", "meeting-notes", "research", "runbooks"],
+  "doc_types": ["knowledge", "specs", "decisions", "meeting-notes", "research", "runbooks"],
   "graph": { "out": "graph/", "provider": "auto" }
 }
 
