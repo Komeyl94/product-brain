@@ -1,71 +1,91 @@
 # Testing
 
-## Pick the cheapest test that can fail for the right reason
+Flutter work is tested end to end with Flutter's own **`integration_test`** package: the real app,
+driven on a device, emulator or simulator. This plugin does not prescribe unit or widget tests; if a
+repo already has them, keep them passing and follow their existing style. If flows need native OS UI
+that `integration_test` can't reach (permission dialogs, notifications, the system browser), ask
+whether to add **Patrol**, which builds on `integration_test` — don't bolt on a second framework
+unasked. If the repo already has an E2E suite in another tool, ask before migrating it.
 
-| Test | Use when |
-|---|---|
-| `test()` | Logic with no widgets: parsing, a bloc/notifier, a repository against a fake client. |
-| `testWidgets()` | The behaviour *is* the UI: what renders for a state, what a tap does. |
-| `integration_test` | A real flow across screens on a device or emulator. Slow; keep the set small. |
+## Setup
 
-Most bugs are testable without pumping a widget. If a rule can only be tested through the UI, the logic is
-probably in the widget and belongs in a notifier or service instead.
-
-## Widget tests
-
-```dart
-testWidgets('shows the empty state when there are no orders', (tester) async {
-  await tester.pumpWidget(MaterialApp(home: OrdersScreen(repository: FakeOrderRepository.empty())));
-  await tester.pump();
-
-  expect(find.text('No orders yet'), findsOneWidget);
-});
+```yaml
+# pubspec.yaml
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
 ```
 
-Wrap the widget under test in whatever ancestors it needs (`MaterialApp`, a theme, the project's provider
-scope) — a missing `Directionality` or `MediaQuery` produces an error that looks like a bug in your widget.
+- Specs live in `integration_test/` as `*_test.dart`, one file per journey.
+- Each file starts with `IntegrationTestWidgetsFlutterBinding.ensureInitialized();` and launches the
+  **real app** through its normal entry point, not a hand-assembled widget tree.
+- Point the app at a **dedicated test backend**, never production, with the project's existing
+  mechanism — a flavor or `--dart-define=API_BASE_URL=...`. Hardcoding a URL in the spec defeats that.
+- Reset persisted state (secure storage, shared preferences, local database) in `setUp`, so every
+  test starts logged out on a fresh install.
 
-`pump()` advances one frame. `pumpAndSettle()` pumps until no frames are scheduled, and **hangs until
-timeout against an indefinite animation** — a spinner, a looping animation, a shimmer placeholder. Use
-`pump(const Duration(milliseconds: 300))` when something on screen animates forever.
+```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
+import 'package:my_app/main.dart' as app;
 
-Find by semantics or by key, not by widget index. `find.byKey(const Key('submit'))` survives a layout
-change; `find.byType(ElevatedButton).at(2)` does not.
+void main() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-## Fake the boundary, not the framework
+  testWidgets('a signed-in user places an order', (tester) async {
+    app.main();
+    await tester.pumpAndSettle();
 
-Write a small fake implementing the repository/client interface. Mocking `http.Client` call-by-call
-produces a test that asserts how the code calls the library rather than what it does, and keeps passing
-when the URL is wrong.
+    await signIn(tester, email: testUserEmail, password: testUserPassword);
+    await tester.tap(find.byKey(const Key('product-tile-sku-1')));
+    await tester.tap(find.bySemanticsLabel('Add to cart'));
+    await tester.tap(find.byKey(const Key('checkout')));
+    await pumpUntilFound(tester, find.text('Order placed'));
 
-Never hit the real network, filesystem or clock in a test. Inject a clock; pin randomness. `await
-Future.delayed(...)` to "wait for" something is always wrong in a widget test — use `tester.pump` with the
-duration, and `tester.runAsync` only when you genuinely need real async work to run.
+    expect(find.text('Order placed'), findsOneWidget);
+  });
+}
+```
 
-## Test the states, including the unhappy ones
+Shared steps (`signIn`, `pumpUntilFound`) go in a helper file under `integration_test/`, not
+copy-pasted into every spec. Credentials come from `--dart-define`, never literals in the code.
 
-For each screen: loading, loaded, empty, failed. The empty and failed branches are the ones that ship
-broken, because they are the ones nobody opens by hand. A sealed state hierarchy (state-management.md)
-makes this a short, exhaustive list.
+## Rules
 
-## Bloc / notifier tests
+- **Find by key or semantics** — `find.byKey(const Key('checkout'))`, `find.bySemanticsLabel(...)`,
+  `find.text` for user-visible copy. Never `find.byType(...).at(n)`: a layout change breaks it.
+  Add `Key`s to the widgets a journey drives.
+- **Wait for the result, not for time** — `pumpAndSettle()` **hangs until timeout** while anything
+  animates forever (a spinner, a shimmer, a looping animation). Use a small `pumpUntilFound` helper
+  that pumps in short steps until the finder matches or a timeout fails the test. Never
+  `Future.delayed` or `sleep` to "wait for" the app.
+- **Every test stands alone** — fresh state in `setUp`, no reliance on another test's data or order.
+- **Own your data** — create what the test needs through the test backend's API; don't depend on
+  whatever happens to be in it.
+- **Cover the unhappy paths** — invalid input, a server error, no network, an expired session, a
+  permission the user doesn't have. The failed and empty screens are the ones that ship broken.
+- **Mock only what you don't own** — fake third-party SDKs (payments, maps, analytics) behind the
+  app's own interfaces; exercise your own backend for real.
+- **Screenshots on failure** — `binding.takeScreenshot('name')` (with the `flutter drive` runner)
+  at the step that failed beats a bare stack trace.
+- `flutter/no-print` and `flutter/no-dynamic` skip test files, but `// ignore:` comments are blocked
+  in tests too, and a `print` is still noise in CI — use `expect` to say what you mean.
 
-Test them as plain objects: construct with fakes, send an event, assert the emitted sequence. No widgets
-involved, so they run in milliseconds and the failure message points at the logic.
+## Running
 
-Assert the sequence, not just the final state — `[Loading, Loaded]` and `[Loaded]` are different bugs.
+Use the repo's own script or Makefile target if it has one; otherwise:
 
-## Hygiene
+```bash
+flutter devices                                                 # pick a device or emulator
+flutter test integration_test -d <device-id> \
+  --dart-define=API_BASE_URL=https://test-api.example.com       # all journeys
+flutter test integration_test/checkout_test.dart -d <device-id> # one journey
+```
 
-- Every test disposes what it creates, exactly like a widget would.
-- No shared mutable state between tests; a `setUp` that builds fresh fakes beats a top-level fixture.
-- `flutter/no-print` and `flutter/no-dynamic` skip test files, but a `print` in a test is still noise in
-  CI output — use `expect` to say what you mean. `// ignore:` comments are blocked in tests too.
-
-## Before claiming it works
-
-Run the project's own commands — usually `flutter analyze` and `flutter test`, but read `pubspec.yaml`,
-`Makefile` and any CI config rather than assuming. `flutter analyze` must be clean: a change that adds
-warnings is not done, and silencing them is blocked. If the change touched generated code, re-run the
-project's codegen (`dart run build_runner build --delete-conflicting-outputs`) and commit the result the
-same way the repository already does.
+For screenshots, or to run on web, use `flutter drive --driver=test_driver/integration_test.dart
+--target=integration_test/<name>_test.dart`. In CI the specs need an emulator/simulator or a device
+farm (e.g. Firebase Test Lab). `flutter analyze` must be clean as well; if the change touched
+generated code, re-run the project's codegen the way the repository already does. Never claim a
+change works without running anything.

@@ -42,7 +42,7 @@
     {
       "name": "stack-flutter",
       "source": "./plugins/stack-flutter",
-      "description": "Flutter conventions: widget composition, state management, async safety and testing."
+      "description": "Flutter conventions: widget composition, state management, async safety and integration_test end-to-end tests."
     }
   ]
 }

@@ -1,6 +1,6 @@
 ---
 name: flutter-conventions
-description: Flutter and Dart conventions for widget composition, state management, async safety, navigation, typing, testing and rendering performance. Use when writing or reviewing Dart in a Flutter app — any repository with a pubspec.yaml that depends on the flutter SDK.
+description: Flutter and Dart conventions for widget composition, state management, async safety, navigation, typing, integration_test end-to-end tests and rendering performance. Use when writing or reviewing Dart in a Flutter app — any repository with a pubspec.yaml that depends on the flutter SDK.
 ---
 
 # Flutter conventions
@@ -45,7 +45,7 @@ this skill the path is `../../rules/<name>.md`.
 | `../../rules/types.md` | Models, JSON parsing, nullability, enums, sealed result types. |
 | `../../rules/analysis.md` | A lint is in the way, or you are tempted by an `// ignore:` comment or an `analysis_options.yaml` edit. |
 | `../../rules/logging.md` | Recording anything: errors, diagnostics, crash reporting, what must never be logged. |
-| `../../rules/testing.md` | Unit, widget or integration tests; `pump` versus `pumpAndSettle`; faking dependencies. |
+| `../../rules/testing.md` | End-to-end tests with `integration_test`: setup, test backend, waiting without `pumpAndSettle` hangs, running on devices. |
 | `../../rules/performance.md` | Lists, animations, images, or anything that janks or rebuilds more than it should. |
 
 ## What the hook blocks before the write lands
