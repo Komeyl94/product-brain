@@ -156,6 +156,7 @@ G → Map domains (graph-assisted)
 H → Re-sync to fold the new docs into the graph
 I → Add the CLAUDE.md snippet(s)
 J → Write role workflows
+K → (optional) Connect team tools — MCP servers with local-only tokens
 ```
 
 > **Order matters.** Build the graph *before* vocabulary and domains. Both are graph-assisted:
@@ -206,7 +207,9 @@ Personal approvals still go in the untracked `.claude/settings.local.json`. Tell
 in VS Code, in the desktop app, or on the web." For **Cowork specifically**, note the one extra option
 below (the account-level skill), since a cloud session needs the skill available before it can run me.
 
-Create `docs/<type>/` for each registered type. The pulled apps land in a **visible `repos/`** folder
+Create `docs/<type>/` for each registered type, each with a `.gitkeep` holding one line on what
+belongs there (e.g. `decisions/`: "one short record per decision: what, why, what we rejected"), so
+a non-technical teammate browsing the hub knows where things go. The pulled apps land in a **visible `repos/`** folder
 and the map in `graph/`; `pb sync` keeps both out of Git automatically (via `.git/info/exclude`, so
 graphify can still read `repos/`) and writes a managed `.graphifyignore`. Don't add `repos/` to a
 tracked `.gitignore` — graphify honors `.gitignore` and would then skip the apps. `pb sync` also
@@ -321,6 +324,36 @@ Append `hub-claude-md-snippet.md` to the hub's `CLAUDE.md`. Optionally, offer to
 ### Phase J — Role workflows
 
 Offer `workflows/<role>.md` for the roles the team has (pm, backend, frontend, qa, onboarding). Each is a lens over the one source, not a copy.
+
+### Phase K — Connect team tools (optional; MCP servers, local-only tokens)
+
+If the team wants Claude to reach their code host or tracker (merge requests, pipelines, tickets),
+set it up so **no secret is ever committed**. These facts are verified, so design around them:
+
+- MCP servers can only be defined in `.mcp.json` (project) or `~/.claude.json`, never in settings files.
+- `${VAR}` expansion in `.mcp.json` reads only the real process environment. It does **not** see the
+  `env` of `.claude/settings.local.json`, and `claude mcp list` reports "Missing environment variables".
+- Spawned MCP server processes **do** inherit that `env`, merged with the server's own `env` block.
+
+So:
+
+1. Write `.mcp.json` (committed) with **only non-secret values** in each server's `env` block (hosts,
+   URLs). Examples: GitLab → `glab mcp serve` with `GITLAB_HOST`; GitHub → the GitHub MCP server;
+   Jira → `uvx mcp-atlassian` with `JIRA_URL`. Ask for the hosts. Never guess them.
+2. Copy `settings-local.example.template.json` to `.claude/settings.local.example.json` (committed),
+   trimmed to the servers you configured. Each teammate copies it to `.claude/settings.local.json` and
+   fills in their own tokens. `pb sync` gitignores that file; confirm it with `git check-ignore -v`.
+3. Warn that a token env var (e.g. `GITLAB_TOKEN`) **overrides** an existing `glab auth login`. A
+   stale one gives 401, so users who already signed in should delete that line.
+4. Never read, print or copy tokens out of other config files. Tell the user which values to fill in.
+   Tell them to type tokens into the file themselves, not paste them into the chat.
+5. Pre-allow the read-only CLI commands in `.claude/settings.json` (e.g. `glab mr list/view`,
+   `glab ci list/status/view/trace`). Verify with `claude mcp list`.
+6. **Checks that run only in CI** (SonarQube, linters, AI review): don't add a Docker-based MCP or a
+   tool token. Find the job in the pipeline config, including shared `include:` templates, and confirm
+   the verdict appears in its log (e.g. SonarQube with `sonar.qualitygate.wait=true` prints
+   `QUALITY GATE STATUS: PASSED|FAILED`). Then write a `docs/runbooks/` entry: MR → pipeline →
+   job → `glab ci trace <job-id>` / `gh run view --log`.
 
 ---
 

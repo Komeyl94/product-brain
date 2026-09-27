@@ -81,6 +81,8 @@ product-brain/
     doc-types/                      meeting-note, decision (ADR)
     workflows/                      pm, backend, frontend, qa, onboarding
     hub-claude-md-snippet.md        for a hub's CLAUDE.md
+    hub-settings.template.json      a hub's .claude/settings.json (plugin in every surface)
+    settings-local.example.template.json  token template; real tokens stay in gitignored settings.local.json
     app-repo-claude-md-snippet.md   optional: makes an app repo hub-aware
   examples/
     todo-app/                       ← a complete tiny hub (todo-api + todo-web)

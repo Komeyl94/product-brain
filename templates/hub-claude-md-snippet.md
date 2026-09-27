@@ -57,6 +57,8 @@ suggest `pb sync`.
 | `.work/` | **Ignore** — temporary directory used during brainify runs. Covered by `.gitignore`. |
 | `graph/graph.json`, `graph/sync-report.md` | **Keep** — the knowledge graph and its sync summary. |
 | `constitution.md`, `vocabulary.md`, `docs/` | **Keep** — the hub's knowledge. |
+| `.mcp.json`, `.claude/settings.local.example.json` | **Keep** — shared MCP servers and the token template. No secrets. |
+| `.claude/settings.local.json` | **Never commit** — personal tokens. Covered by `.gitignore` (`pb sync` adds it). MCP servers inherit its `env`, but `${VAR}` placeholders in `.mcp.json` do *not* see it, so never reference tokens that way. |
 
 If `graphify-out/` was accidentally committed before this fix, clean it up once with:
 ```bash
@@ -84,6 +86,12 @@ Use `vocabulary.md` terms when answering. When code uses a different word than t
 - "Rebuild the graph from scratch" → `pb sync --rebuild`.
 - "What domains do we have?" → read `domains.md` / query graph communities.
 - "Write a spec for X" → check whether `templates/spec-template.md` exists in this hub. If it does, copy it into `docs/specs/` and fill in the details. If not, ask: "Would you like me to copy the Product Brain recommended templates into `templates/`?" If yes, create the `templates/` folder and scaffold `spec-template.md`, `doc-types/decision-template.md`, and `doc-types/meeting-note-template.md` from the Product Brain framework, then proceed with the spec. If no, create the spec using your team's own format.
+
+### CI-hosted checks are read from the pipeline
+
+If a check runs only in CI (SonarQube, linters, AI review), don't add a local tool or an MCP server
+for it. Read the job's log for the merge/pull request's pipeline (`glab ci trace <job-id>` /
+`gh run view --log`) and report the verdict. Keep the exact steps in a `docs/runbooks/` entry.
 
 ### Keeping it fresh
 

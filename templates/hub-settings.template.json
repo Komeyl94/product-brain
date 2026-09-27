@@ -1,5 +1,5 @@
 {
-  "//": "brainify writes this to a new hub's .claude/settings.json. Two jobs: (1) make Product Brain available in every Claude surface that opens this hub — CLI, VS Code/JetBrains, desktop, and cloud/Cowork sessions — by declaring the marketplace + plugin, and (2) pre-allow the safe commands the team runs so teammates aren't prompted for each one. Path-free and safe to commit (no machine paths). Personal approvals still go in the untracked .claude/settings.local.json.",
+  "//": "brainify writes this to a new hub's .claude/settings.json. Two jobs: (1) make Product Brain available in every Claude surface that opens this hub — CLI, VS Code/JetBrains, desktop, and cloud/Cowork sessions — by declaring the marketplace + plugin, and (2) pre-allow the safe commands the team runs so teammates aren't prompted for each one. Path-free and safe to commit (no machine paths). Personal approvals and tokens go in the gitignored .claude/settings.local.json (see settings-local.example.template.json). env.PYTHONUTF8 makes pb and graphify read/write UTF-8 on Windows, whose default code page cannot encode the emoji in pb's reports.",
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "extraKnownMarketplaces": {
     "product-brain": {
@@ -7,6 +7,7 @@
     }
   },
   "enabledPlugins": { "product-brain@product-brain": true },
+  "env": { "PYTHONUTF8": "1" },
   "permissions": {
     "allow": [
       "Bash(pb sync:*)",

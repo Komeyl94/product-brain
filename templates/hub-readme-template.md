@@ -11,20 +11,19 @@
 
 ## Get Product Brain
 
-This hub is knowledge only — the tooling lives in the framework repo. To work with it:
+This hub is knowledge only. The tooling (the `brainify` skill and the `pb` CLI) is the Product Brain
+plugin. Works on Windows, macOS and Linux.
 
-```bash
-# 1. Get the framework (once, anywhere)
-git clone <product-brain-framework-url> product-brain
-product-brain/bin/install-skill.sh        # installs the brainify skill + the `pb` CLI
+1. **Install** Git, Python 3 and Claude Code. On Windows, use [Git for Windows](https://git-scm.com/downloads/win)
+   (Claude Code needs it), and tick **"Add python.exe to PATH"** in the [Python](https://www.python.org/downloads/)
+   installer.
+2. **Clone this hub** and open the folder in Claude Code. Trust the folder, and accept the prompt to
+   install the Product Brain plugin (declared in `.claude/settings.json`). Or install it by hand:
+   `/plugin marketplace add Whotan/product-brain` → `/plugin install product-brain@product-brain`.
+3. **Say "update the brain".** Claude installs graphify (`graphifyy`; no LLM key needed for code),
+   clones the tracked repos into `repos/`, and builds the graph. That's the same as running `pb sync`.
 
-# 2. Get graphify (the graph engine; no LLM key needed for code)
-pip install graphifyy
-
-# 3. Get this hub and build the graph
-git clone <this-hub-url> && cd $(basename <this-hub-url> .git)
-pb sync                                    # clones the tracked repos into repos/ and builds the graph
-```
+From then on, just ask Claude. No commands to learn.
 
 `repos/` and `{{GRAPH}}` are **not committed** — a fresh clone of this hub won't contain them.
 `pb sync` populates `repos/` (a full working clone of each tracked repo, which you develop in
