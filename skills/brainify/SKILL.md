@@ -429,6 +429,38 @@ you cannot find — never copy values from another hub.
 
 ---
 
+## Missing programs
+
+The plugin's SessionStart hook (`hooks/check-deps.sh`, plain shell, so it runs even without
+Python) warns when something Product Brain needs is missing: `git`, a working `python3`, `node` (for
+guardrails), `graphify` in a hub, and each program the hub's `.mcp.json` launches (`glab`, `gh`,
+`uvx`). It prints the install command for the user's OS: macOS, Linux, or Windows via Git Bash.
+When it reports something, tell the user what each program is for, offer to run the install for
+them, and ask first. On Windows, a `python3` that exists but won't run is usually the Microsoft Store
+alias. The warning says how to turn it off.
+
+---
+
+## Clean up an older install
+
+Before the plugin, Product Brain was installed by copying the skill into `~/.claude/skills/brainify`
+and linking `pb` into `~/.local/bin`. Those copies stay behind after the plugin is installed and
+**shadow** it: Claude loads the old brainify, and the old `pb` runs first on PATH, so the user never
+sees newer features (shared plugins, `pb check`, this section).
+
+The plugin's SessionStart hook runs `pb version --hook` and lists what it finds. `pb version` prints
+the same list. When either reports leftovers:
+
+1. Tell the user in plain words what is old and why it matters. Ask before deleting anything.
+2. With their OK, remove the old skill folder (`~/.claude/skills/brainify` or the hub's
+   `.claude/skills/brainify`) and the old `pb` link (`which pb`). Leave any old framework checkout
+   alone. The user can delete it.
+3. Have them run `/reload-plugins` (or restart), then `pb version` again. It should show no warnings.
+4. If the hook also said the hub was set up by an older version, run the audit and offer
+   **Upgrade an existing hub** above.
+
+---
+
 ## "What should I do next?" (lightweight re-audit)
 
 | Condition | Suggestion |

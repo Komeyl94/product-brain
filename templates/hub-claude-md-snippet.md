@@ -111,6 +111,7 @@ never ask the user to paste one into the chat.
 - "Set up product brain" / "audit our setup" → run the `brainify` skill.
 - "Update me" / "update the brain" / "refresh" / "sync the graph" / "pull the latest" → run `pb sync` (it pulls the hub's latest changes, pulls the tracked app repos, and rebuilds the graph incrementally), then report what changed.
 - "Rebuild the graph from scratch" → `pb sync --rebuild`.
+- "Update Product Brain" / "upgrade the tooling" → run `pb version --check`, tell the user to run `/plugin marketplace update product-brain` then `/reload-plugins`, then `pb sync` and the `brainify` audit to turn on anything new. If `pb version` names a personal skill or an old `pb` path, point that out as the likely shadowing copy and suggest removing it.
 - "Set up my connections" → the `connect-tools` skill.
 - "Check SonarQube on MR !<n>" → follow `docs/runbooks/check-sonarqube-on-mr.md` if the hub has it, otherwise the `review-mr` skill (git-workflow plugin).
 - "What domains do we have?" → read `domains.md` / query graph communities.

@@ -45,6 +45,57 @@ def main():
             text = (ROOT / "templates" / name).read_text(encoding="utf-8")
             json.loads(text)
             assert "${" not in text, f"{name}: .mcp.json can't expand ${{VAR}} from settings env"
+
+    # old installs: only reported when pb runs from the plugin cache
+    legacy = pb["legacy_installs"]
+    with tempfile.TemporaryDirectory() as tmp:
+        home, hub = Path(tmp) / "home", Path(tmp) / "hub"
+        plugin_root = home / ".claude/plugins/cache/product-brain/product-brain/9.9.9"
+        (plugin_root / "bin").mkdir(parents=True)
+        (plugin_root / "bin/pb").write_text("")
+        old_skill = home / ".claude/skills/brainify"
+        old_skill.mkdir(parents=True)
+        (old_skill / "SKILL.md").write_text("---\nversion: 0.3.0\n---\n")
+        (hub / ".claude").mkdir(parents=True)
+        (hub / "brain.config.json").write_text("{}")
+        (hub / ".claude/settings.json").write_text('{"enabledPlugins": {"product-brain@product-brain": true}}')
+
+        legacy.__globals__["framework_root"] = lambda: ROOT
+        assert legacy(hub, home, "/old/pb") == [], "checkout installs are the old copy by design"
+
+        legacy.__globals__["framework_root"] = lambda: plugin_root
+        found = legacy(hub, home, "/old/pb")
+        assert len(found) == 3, found
+        assert "0.3.0" in found[0] and "/old/pb" in found[1] and "git-workflow" in found[2]
+
+        (home / ".local/bin").mkdir(parents=True)
+        (home / ".local/bin/pb").write_text("")  # found even when which() misses it (Windows)
+        assert any(".local" in f for f in legacy(hub, home, "")), "old ~/.local/bin/pb missed"
+        (home / ".local/bin/pb").unlink()
+
+        shutil.rmtree(old_skill)
+        (hub / ".claude/settings.json").write_text(
+            '{"enabledPlugins": {"git-workflow@product-brain": true, "guardrails@product-brain": true}}')
+        assert legacy(hub, home, str(plugin_root / "bin/pb")) == []
+
+    # dependency check: warns with an install hint when a program is missing, silent otherwise
+    bash = shutil.which("bash")
+    if bash:
+        with tempfile.TemporaryDirectory() as tmp:
+            bare = Path(tmp) / "bin"
+            bare.mkdir()
+            for tool in ("sed", "sort", "uname"):
+                (bare / tool).symlink_to(shutil.which(tool))
+            hub = Path(tmp) / "hub"
+            hub.mkdir()
+            (hub / "brain.config.json").write_text("{}")
+            (hub / ".mcp.json").write_text('{"mcpServers": {"jira": {"command": "uvx"}}}')
+            out = subprocess.run([bash, str(ROOT / "hooks/check-deps.sh")], capture_output=True, text=True,
+                                 env={"PATH": str(bare), "CLAUDE_PROJECT_DIR": str(hub)})
+            assert out.returncode == 0
+            for tool in ("git", "python3", "node", "graphify", "uvx"):
+                assert f"- {tool} (" in out.stdout, (tool, out.stdout)
+            assert "Install:" in out.stdout
     print("ok")
 
 

@@ -152,6 +152,21 @@ Nothing else goes at the top level. A new kind of document gets a new doc type i
 - `repos/` and `{{GRAPH}}` are never committed — every teammate builds their own with "update the brain".
 - Updating never overwrites unsaved work: an app with local changes is skipped, not reset.
 
+## Updating Product Brain itself
+
+"Update the brain" refreshes this hub's knowledge and code. Product Brain (the tooling: `pb`, the
+skills and the shared rule plugins) updates separately:
+
+1. In Claude Code, run `/plugin marketplace update product-brain`, then `/reload-plugins`.
+   (With auto-update on, this happens in the background after a session starts.)
+2. Say "update the brain", so this README and the hub's managed files pick up the new version.
+3. Say "audit our setup". It lists anything the new version adds that this hub hasn't turned on
+   yet, such as a new shared plugin.
+
+Check the version with `pb version --check`. Copies left over from an older install (an old
+`~/.claude/skills/brainify` folder or an old `pb` on your PATH) hide the new version. Claude warns
+you about them when a session starts and offers to remove them.
+
 ## For developers
 
 ```bash

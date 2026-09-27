@@ -606,8 +606,60 @@ def _skill_version(skill_dir: Path):
     return "unversioned"
 
 
+SHARED_PLUGINS = ("git-workflow@product-brain", "guardrails@product-brain")
+
+
+def legacy_installs(hub: Path, home: Path = None, pb_on_path: str = None) -> list:
+    """Leftovers from pre-plugin installs that hide the plugin's newer copy, plus hubs set up before
+    shared plugins existed. Only meaningful when this pb runs from the plugin; a checkout install
+    (bin/install-skill.sh) is the old copy by design."""
+    root = framework_root()
+    if "/.claude/plugins/" not in root.as_posix():
+        return []
+    home = home or Path.home()
+    found = []
+    for loc in (home / ".claude" / "skills" / "brainify", hub / ".claude" / "skills" / "brainify"):
+        if loc.exists() and not loc.is_symlink():
+            found.append(f"An old brainify skill copy ({_skill_version(loc)}) at {loc} shadows the "
+                         f"plugin's brainify {read_version()}. Remove that folder, then /reload-plugins.")
+    pb_on_path = pb_on_path if pb_on_path is not None else (shutil.which("pb") or "")
+    # which() skips extensionless files on Windows, but Git Bash still runs an old ~/.local/bin/pb
+    old_link = home / ".local" / "bin" / "pb"
+    for cand in dict.fromkeys(c for c in (pb_on_path, str(old_link) if os.path.lexists(old_link) else "") if c):
+        if Path(cand).resolve() != (root / "bin" / "pb").resolve():
+            found.append(f"An old `pb` at {cand} -> {Path(cand).resolve()} can run instead of the plugin's. "
+                         f"Remove that link (the plugin already puts pb on PATH).")
+    settings = hub / ".claude" / "settings.json"
+    if (hub / "brain.config.json").exists() and settings.exists():
+        text = settings.read_text(encoding="utf-8-sig")
+        missing = [p for p in SHARED_PLUGINS if p not in text]
+        if missing:
+            found.append(f"This hub was set up by an older version: {', '.join(missing)} not enabled in "
+                         f".claude/settings.json. Say \"audit our setup\" to upgrade it.")
+    return found
+
+
+def cmd_version_hook() -> int:
+    """Claude Code SessionStart hook: tell Claude about old installs so it can offer to clean them
+    up. Silent when there are none; never fails a session."""
+    try:
+        found = legacy_installs(Path(os.environ.get("CLAUDE_PROJECT_DIR") or "."))
+    except Exception:
+        return 0
+    if found:
+        print("Product Brain found leftovers from an older version:\n"
+              + "\n".join(f"  - {f}" for f in found)
+              + "\nTell the user about these once, early, in plain words, and offer to fix them. "
+                "Ask before deleting anything.")
+    return 0
+
+
 def report_installed_skill():
     root = framework_root()
+    for f in legacy_installs(Path.cwd()):
+        print(f"⚠️  {f}")
+    if "/.claude/plugins/" in root.as_posix():
+        return
     repo_v = _skill_version(root / "skills" / "brainify")
     locations = [(Path.home() / ".claude" / "skills" / "brainify", "personal"),
                  (Path.cwd() / ".claude" / "skills" / "brainify", "project")]
@@ -922,9 +974,12 @@ def main():
     f.add_argument("--limit", type=int, default=15, help="max results (default 15)")
     v = sub.add_parser("version", help="show the Product Brain version (and check for updates)")
     v.add_argument("--check", action="store_true", help="fetch and report whether a newer version exists upstream")
+    v.add_argument("--hook", action="store_true", help=argparse.SUPPRESS)
     args = p.parse_args()
 
     if args.cmd == "version":
+        if args.hook:
+            sys.exit(cmd_version_hook())
         cmd_version(args.check)
         return
     if args.cmd == "check" and (args.hook or args.selftest):
