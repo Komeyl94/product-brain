@@ -6,5 +6,26 @@
     { "id": "todo-web", "url": "git@github.com:example/todo-web.git", "src": ["src/"] }
   ],
   "doc_types": ["specs", "decisions", "meeting-notes"],
-  "graph": { "out": "graph/" }
+  "graph": { "out": "graph/" },
+  "design": {
+    "system": "DESIGN.md",
+    "build": "brand"
+  },
+  "releases": {
+    "tag_regex": "^v\\d+\\.\\d+\\.\\d+$",
+    "primary_repo": "todo-api",
+    "production_branch": "main",
+    "integration_branch": "develop",
+    "merge_style": "squash",
+    "out": "docs/releases",
+    "client_note": { "locale": "en", "dir": "ltr" },
+    "internal_note": { "locale": "en" },
+    "tests": { "todo-api": "./vendor/bin/phpunit", "todo-web": "npm test" }
+  },
+  "roadmap": {
+    "out": "docs/roadmap/delivery-roadmap.html",
+    "facts": "docs/roadmap/.roadmap-facts.json",
+    "specs_dir": "docs/specs",
+    "framing": "none"
+  }
 }
