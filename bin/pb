@@ -364,6 +364,12 @@ def run_graphify(content_root: Path, out: Path, dry: bool, rebuild: bool, provid
             "sets graphify up for you).")
     env, label = graphify_env(provider)
     log(f"semantic extraction provider: {label}")
+    # graphify >= 0.9.5x refuses a no-key run over changed docs unless told --code-only
+    # (older versions don't know the flag, so only pass it when graphify advertises it).
+    if code_only_mode(provider) and "--code-only" in subprocess.run(
+            ["graphify", "--help"], capture_output=True, text=True, encoding="utf-8",
+            errors="replace").stdout:
+        cmd.append("--code-only")
     out.mkdir(parents=True, exist_ok=True)
     if rebuild:
         for cache in cache_candidates:
