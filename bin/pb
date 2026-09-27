@@ -48,7 +48,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-CORE_DOCS = ["constitution.md", "vocabulary.md", "domains.md"]
+CORE_DOCS = ["constitution.md", "vocabulary.md", "DESIGN.md", "domains.md"]
 
 README_START = "<!-- product-brain:managed:start -->"
 README_END = "<!-- product-brain:managed:end -->"

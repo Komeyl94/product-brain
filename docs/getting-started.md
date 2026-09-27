@@ -55,6 +55,8 @@ Say: **"Set up product brain."** Claude does the technical parts for you — it 
 builder if needed, makes the hub, and asks you simple questions one at a time (your rules, your key
 words, your product's main areas), writing the files as you go. You review and tweak; nothing is final
 until you say so. If you want the hub shared on GitHub, a technical teammate can connect it once.
+It also lifts your product's one design system (`DESIGN.md`) from your frontend, so every document
+Claude later generates — a roadmap, a dashboard, release notes — matches your brand automatically.
 
 ### 3. Refresh
 Ask Claude: **"Update me"** or **"Refresh the brain."** It pulls everyone's latest hub changes and

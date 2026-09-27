@@ -17,11 +17,22 @@ It is **method-agnostic** — specs may be written in any format, as long as the
 |---|---|
 | `constitution.md` | Non-negotiable principles (required) |
 | `vocabulary.md` | Glossary: product ↔ code terms (required, graphed) |
+| `DESIGN.md` | Product-level design system: brand tokens + artifact styling (required) |
 | `domains.md` | Domain map (recommended, graph-assisted) |
 | `docs/<type>/` | Extensible knowledge: specs, decisions, meeting-notes, … (Markdown-first; PDFs/recordings/images welcome) |
 | `workflows/<role>.md` | Role lenses |
 | `brain.config.json` | Repos to pull + registered doc types + graph settings |
+| `brand/brand.css`, `brand/tokens.json` | Compiled brand, built by the `brand-system` skill from `DESIGN.md` (committed, unlike `graph/`) |
 | `graph/graph.json` | The knowledge graph (built by `pb sync`) |
+
+### Brand
+
+Every artifact this hub (or its skills) generates — docs pages, dashboards, roadmaps, release
+notes, decks — is styled only from the compiled brand: `brand/brand.css` and its `--ds-*`
+variables, built by the `brand-system` skill from `DESIGN.md`. `DESIGN.md` is lifted from the
+frontend's design source, never invented; if that design system moves, re-run `brand-system` and
+re-inline the living artifacts. `check-brand.py` fails any artifact that strays from the compiled
+tokens — every artifact skill runs it before publishing.
 
 ### Health checks
 

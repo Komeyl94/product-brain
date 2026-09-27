@@ -76,6 +76,7 @@ acme-brain/                          ← the hub: its own git repo, single sourc
   brain.config.json                  machine config: which repos to pull, doc types, graph settings
   constitution.md                    principles / non-negotiables        (CORE, required)
   vocabulary.md                      glossary: product term ↔ code term   (CORE, required)
+  DESIGN.md                          product-level design system: brand tokens + artifact styling (CORE, required)
   domains.md                         domain map: area → owner, status, which repos   (recommended, graph-assisted)
   docs/                              extensible, typed knowledge — Markdown-first (multimodal supported)
     specs/                           authored however the team likes (Spec Kit, RFC, plain MD…)
@@ -85,6 +86,7 @@ acme-brain/                          ← the hub: its own git repo, single sourc
     runbooks/
     <your-own-type>/                 anything the team registers in brain.config.json
   workflows/                         role playbooks: pm.md, backend.md, frontend.md, qa.md, …
+  brand/                             compiled brand: brand.css + tokens.json (built from DESIGN.md; committed)
   graph/                             graphify output: graph.json, GRAPH_REPORT.md, graph.html
   repos/                             FULL working clones of the apps — developers work in them here
   .graphifyignore                    managed: graphify skips graph/, keeps repos/
@@ -99,7 +101,7 @@ never disturbed. `repos/` and `graph/` are kept out of the *hub's* Git via `.git
 local, untracked exclude), **not** a tracked `.gitignore` — because graphify honors `.gitignore` and
 would otherwise skip the clones.
 
-The **required core** is just two files (`constitution.md`, `vocabulary.md`) — the knowledge that can't be derived from code. `domains.md` is **recommended and graph-assisted** (curate it from the graph's communities after a sync). Everything under `docs/` is optional and extensible. There is **no spec-kit-specific folder and no required methodology**.
+The **required core** is three files (`constitution.md`, `vocabulary.md`, `DESIGN.md`) — the knowledge that can't be derived from code, plus the one design system every generated artifact must be styled from. `domains.md` is **recommended and graph-assisted** (curate it from the graph's communities after a sync). Everything under `docs/` is optional and extensible. There is **no spec-kit-specific folder and no required methodology**.
 
 The app repos themselves get **nothing added** — see §8.
 

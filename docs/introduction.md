@@ -70,6 +70,9 @@ searchable knowledge sitting right next to the code it affects.
 
 - **constitution.md** — your non-negotiable rules (e.g. "every user only sees their own data").
 - **vocabulary.md** — your glossary tying product words to code words.
+- **DESIGN.md** — your one product-level design system (brand colours, type, shape), lifted from
+  your frontend's design source, never invented. Every artifact Product Brain generates — docs
+  pages, dashboards, roadmaps, release notes, decks — is styled only from it.
 
 **Recommended:** **domains.md** — the big areas of your product, with owners and status. It's
 "graph-assisted": after a refresh, the map already groups related things, so you mostly just tidy

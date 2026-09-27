@@ -51,7 +51,7 @@ remove + re-add it (a plain `update` hits a name mismatch), so avoid renames.
 
 ## What a hub looks like (what the templates build)
 
-Required core: `constitution.md`, `vocabulary.md`. Recommended (graph-assisted): `domains.md`.
+Required core: `constitution.md`, `vocabulary.md`, `DESIGN.md`. Recommended (graph-assisted): `domains.md`.
 Plus: `brain.config.json` (repos + doc types), `docs/<type>/` (extensible), `workflows/<role>.md`, `graph/` (built by `pb sync`).
 
 ## The graph

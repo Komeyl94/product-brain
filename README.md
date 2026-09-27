@@ -198,7 +198,7 @@ from the plugin and report up to date) and "set up product brain" (the skill sho
 
 ### Versions & updates
 
-The framework version lives in `VERSION` (currently `0.3.0`) and is stamped into the skill's
+The framework version lives in `VERSION` (currently `0.4.0`) and is stamped into the skill's
 frontmatter. Check what you have — and whether your installed skill is current — with:
 
 ```bash
@@ -296,6 +296,8 @@ the graph stays focused. Use `["."]` (the default for adopted repos) to graph th
 
 - `constitution.md` — the non-negotiable principles.
 - `vocabulary.md` — the glossary tying product language to code.
+- `DESIGN.md` — the product's one design system: brand tokens (colour, type, shape) lifted from the
+  frontend's design source, compiled to `brand/` and used to style every artifact the hub generates.
 
 **Recommended:** `domains.md` — the functional areas, owners, status, and which repos implement them. It's graph-assisted: after a sync, the graph's communities are good candidate domains, so you curate rather than author from scratch.
 

@@ -41,9 +41,11 @@ directly) and builds the graph. To move an existing local checkout in without re
 |---|---|
 | `constitution.md` | Non-negotiable principles (required) |
 | `vocabulary.md` | Glossary: product ↔ code terms (required) |
+| `DESIGN.md` | Product-level design system: brand tokens + artifact styling (required) |
 | `domains.md` | Domain map (recommended) |
 | `docs/<type>/` | Team knowledge — registered doc types: {{DOC_TYPES}} |
 | `brain.config.json` | Tracked repos + doc types + graph settings |
+| `brand/` | Compiled brand (`brand.css`, `tokens.json`) — built from `DESIGN.md`, committed |
 | `{{GRAPH}}` | The knowledge graph (built by `pb sync`) |
 
 ## Everyday commands
