@@ -1,6 +1,6 @@
 ---
 name: symfony-conventions
-description: Symfony conventions for architecture, dependency injection, controllers and routing, Doctrine, security, Messenger and testing. Use when writing or reviewing PHP in a Symfony application — any repository whose composer.json requires symfony/framework-bundle.
+description: Symfony conventions for architecture, dependency injection, controllers and routing, Doctrine, security, Messenger and Playwright end-to-end tests. Use when writing or reviewing PHP in a Symfony application — any repository whose composer.json requires symfony/framework-bundle.
 ---
 
 # Symfony conventions
@@ -44,7 +44,7 @@ this skill the path is `../../rules/<name>.md`.
 | `../../rules/doctrine.md` | Entities, repositories, DQL, `flush()` placement, N+1, batch processing, migrations. |
 | `../../rules/security.md` | Authentication, authorisation, voters, user input reaching a query, secrets, what a response is allowed to expose. |
 | `../../rules/messenger.md` | Dispatching or handling an async message, retries, transactional dispatch, worker lifetime. |
-| `../../rules/testing.md` | Any test: unit, `KernelTestCase`, `WebTestCase`, database state, messenger assertions. |
+| `../../rules/testing.md` | Playwright end-to-end tests: browser specs, API request specs, the `e2e` environment and database. |
 
 ## What the hook blocks before the write lands
 

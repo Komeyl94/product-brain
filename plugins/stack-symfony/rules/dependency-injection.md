@@ -103,4 +103,4 @@ from a plain service class to get helper methods drags the container in with it.
 
 `static::getContainer()->get(...)` inside a test is legitimate and the rule skips test files; the test *is*
 the composition root. It is still better to construct the unit directly with fakes when the test does not
-need the kernel. See testing.md.
+need the kernel.

@@ -37,7 +37,7 @@
     {
       "name": "stack-symfony",
       "source": "./plugins/stack-symfony",
-      "description": "Symfony conventions: dependency injection, controllers, Doctrine and the messenger component."
+      "description": "Symfony conventions: dependency injection, controllers, Doctrine, the messenger component and Playwright end-to-end tests."
     },
     {
       "name": "stack-flutter",

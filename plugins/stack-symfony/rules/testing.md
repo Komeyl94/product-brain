@@ -1,98 +1,84 @@
 # Testing
 
-## Pick the cheapest test that can fail for the right reason
+Symfony work is tested end to end with **Playwright** (`@playwright/test`) — not Symfony Panther and
+not Cypress. This plugin does not prescribe unit, `KernelTestCase` or `WebTestCase` tests; if a repo
+already has a PHPUnit suite, keep it passing and follow its existing style. If the repo already has a
+Panther or Cypress suite, don't start a parallel one on your own — ask whether to migrate it; if it
+has no E2E yet, set up Playwright.
 
-| Test case | Use when |
-|---|---|
-| plain `TestCase` | The unit has no container and no database. Construct it with fakes. |
-| `KernelTestCase` | You need real wiring or the database, but not HTTP. |
-| `WebTestCase` | The thing under test *is* the HTTP behaviour: status, headers, payload shape, auth. |
+## Setup
 
-A `WebTestCase` for logic that a plain `TestCase` could cover is slow, and when it fails it does not say
-which layer broke.
+- `playwright.config.ts` at the repo root, specs in `tests/e2e/` as `*.spec.ts`.
+- `baseURL` from the app URL, and a `webServer` entry that starts the app when it isn't already
+  running (`symfony server:start --no-tls --port=8000`, or `php -S 127.0.0.1:8000 -t public`).
+- Run in a dedicated **`e2e` environment** (`APP_ENV=e2e`, settings in `.env.e2e`) against its own
+  database, never a developer's. Reset it in `globalSetup`:
 
-## Unit tests construct the class directly
+  ```bash
+  php bin/console doctrine:database:drop --force --if-exists --env=e2e
+  php bin/console doctrine:database:create --env=e2e
+  php bin/console doctrine:migrations:migrate --no-interaction --env=e2e
+  php bin/console doctrine:fixtures:load --no-interaction --env=e2e   # if the repo uses fixtures
+  ```
 
-```php
-$service = new RegisterUser(new InMemoryUserRepository(), new FakeClock($now));
+- **Messenger**: route async transports to `sync://` in the `e2e` environment, so a message's side
+  effects have happened by the time the response returns. Otherwise the spec races a worker.
+- The app is stateful, so use `workers: 1` and `fullyParallel: false` unless every spec creates fully
+  isolated data.
+- `trace: 'retain-on-failure'`, `screenshot: 'only-on-failure'`, `forbidOnly: !!process.env.CI`.
+
+## Web apps: browser specs
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('a manager approves a pending order', async ({ page }) => {
+  await page.goto('/orders?status=pending');
+  await page.getByRole('row', { name: /ORD-1001/ }).getByRole('button', { name: 'Approve' }).click();
+  await expect(page.getByRole('status')).toHaveText('Order approved');
+});
 ```
 
-If a service is hard to construct in a test, that is a design signal — usually too many dependencies or a
-hidden container lookup. Fix the class rather than reaching for the kernel.
+## API-only services: request specs
 
-## The container in tests
+A Symfony API with no UI (API Platform or plain controllers) is still tested end to end — through
+HTTP with Playwright's `request` fixture, against the running app and its `e2e` database:
 
-`static::getContainer()->get(App\Service\Foo::class)` is legitimate — `symfony/no-container-service-locator`
-skips test files, because the test is the composition root. The test container exposes private services, so
-there is never a reason to make a service public just to test it.
+```ts
+import { test, expect } from '@playwright/test';
 
-```php
-final class RegisterUserTest extends KernelTestCase
-{
-    public function testItStoresTheUser(): void
-    {
-        self::bootKernel();
-        $register = self::getContainer()->get(RegisterUser::class);
-        // ...
-    }
-}
+test('another user cannot read my order', async ({ playwright }) => {
+  const owner = await playwright.request.newContext({ storageState: 'e2e/.auth/owner.json' });
+  const other = await playwright.request.newContext({ storageState: 'e2e/.auth/other.json' });
+
+  const { id } = await (await owner.post('/api/orders', { data: { sku: 'SKU-1', quantity: 2 } })).json();
+
+  expect((await owner.get(`/api/orders/${id}`)).status()).toBe(200);
+  expect((await other.get(`/api/orders/${id}`)).status()).toBe(403);
+});
 ```
 
-## Database state
+Authenticate once per persona in a setup project (store the session or token and reuse it); never
+hardcode a real credential — read it from the environment.
 
-Each test must start from a known state and leave nothing behind. If the repository already uses
-`dama/doctrine-test-bundle`, every test runs inside a transaction that is rolled back and you need no
-teardown. Otherwise wrap the test yourself, or rebuild the schema per test class — never let tests depend
-on rows another test left.
+## Rules
 
-Build fixtures in the test, close to the assertion, rather than in a shared fixture file that every test
-silently depends on. A named factory method (`anOrderWith(status: Paid)`) beats a global dataset because
-the reader can see what the test needs.
+- **Locate by role, label or test id** — never CSS classes or XPath.
+- **Web-first assertions only** — `await expect(locator).toBeVisible()` retries; never
+  `page.waitForTimeout()`.
+- **Every test stands alone** — no reliance on another test's data or order.
+- **Own your data** — create what the test needs through the app or its API; don't depend on
+  whatever happens to be in the database.
+- **Cover the refusal paths too** — a guest, a user without the role, another user's record (a
+  missing voter check is invisible if you only ever act as the owner), invalid input.
+- **Mock only what you don't own** — `page.route()` for third-party services; exercise your own
+  backend for real.
+- **Debug with traces, not retries** — read the trace (`npx playwright show-trace`) instead of
+  raising timeouts until a flaky test passes.
 
-Assert against the database, not only the return value, when the point of the use case is persistence —
-and `clear()` the entity manager first, otherwise you are asserting against the in-memory identity map and
-a broken mapping still passes.
+## Running
 
-## Functional tests
-
-```php
-$client = static::createClient();
-$client->loginUser($user);                       // no login form round-trip
-$client->request('POST', '/orders', server: ['CONTENT_TYPE' => 'application/json'], content: $json);
-
-self::assertResponseStatusCodeSame(201);
-self::assertJsonStringEqualsJsonString($expected, $client->getResponse()->getContent());
-```
-
-Use the `assertResponse*` / `assertBrowser*` assertions rather than poking at the response object — they
-print the actual response body on failure, which turns a one-line failure into a diagnosis.
-
-Test the authorisation path explicitly: one test for the owner getting 200, one for a different user
-getting 403. A missing record-level check is invisible to a test suite that only ever logs in as the owner.
-
-## Messenger
-
-Route the bus to `in-memory://` in the test environment and assert on what was dispatched, rather than
-running a worker:
-
-```php
-$transport = self::getContainer()->get('messenger.transport.async');
-self::assertCount(1, $transport->getSent());
-```
-
-Handlers themselves are plain classes — test them by invoking them directly with a message.
-
-## Do not mock what you do not own
-
-Mocking `EntityManagerInterface` or `QueryBuilder` produces a test that asserts Doctrine's API was called in
-a particular order, and it keeps passing when the query is wrong. Use the real thing against a test
-database, or put the query behind a repository interface with an in-memory fake.
-
-The same applies to time and randomness: inject a clock and a token generator so the test can pin them.
-`sleep()` in a test is always wrong — it is slow and still flaky.
-
-## Before claiming it works
-
-Run the project's own commands — read `composer.json` scripts and `Makefile` rather than assuming; it is
-usually `vendor/bin/phpunit` (or `bin/phpunit`) plus a static analysis step. Do not report a change as done
-on the strength of having written the test.
+Use the repo's own E2E script or Makefile target if it has one; otherwise `npx playwright test`,
+one file with `npx playwright test tests/e2e/orders.spec.ts`, and `--ui` to debug. First run on a
+machine or in CI needs `npx playwright install --with-deps`. Never claim a change works without
+running anything.
