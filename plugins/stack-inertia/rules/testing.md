@@ -1,7 +1,7 @@
 # Testing
 
-Laravel-side tests (Pest/PHPUnit feature tests, including `assertInertia`) live in `stack-laravel`'s
-testing rules. This file covers the browser: end-to-end tests of the real Laravel + React app.
+End-to-end tests of the real Laravel + React app. The general Laravel E2E setup is in
+`stack-laravel`'s testing rule; this file adds what is specific to Inertia pages.
 
 ## End-to-end tests: Playwright
 
@@ -37,9 +37,8 @@ test('admin archives a product', async ({ page }) => {
   don't depend on whatever happens to be in a shared database.
 - **Mock only what you don't own** — `page.route()` for third-party services (payments, maps);
   exercise your own backend for real, or the test proves nothing about the seam.
-- **Keep E2E a thin layer** — a handful of journey and smoke specs (sign-in, the flows a ticket's
-  acceptance criteria describe). The bulk of coverage is Pest feature tests, which are faster and
-  pin down the server side precisely.
+- **Cover journeys and their failure paths** — sign-in, the flows a ticket's acceptance criteria
+  describe, and what the user sees when validation or the server refuses.
 - **Debug with traces, not retries** — configure `trace: 'retain-on-failure'`,
   `screenshot: 'only-on-failure'` and `forbidOnly: !!process.env.CI`, and read the trace
   (`npx playwright show-trace`) instead of raising timeouts until a flaky test passes.

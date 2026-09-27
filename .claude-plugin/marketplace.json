@@ -22,7 +22,7 @@
     {
       "name": "stack-laravel",
       "source": "./plugins/stack-laravel",
-      "description": "Laravel conventions: architecture, Eloquent, migrations, validation, queues and testing."
+      "description": "Laravel conventions: architecture, Eloquent, migrations, validation, queues and Playwright end-to-end tests."
     },
     {
       "name": "stack-inertia",

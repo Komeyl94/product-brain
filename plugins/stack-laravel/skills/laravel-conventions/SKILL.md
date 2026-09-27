@@ -1,6 +1,6 @@
 ---
 name: laravel-conventions
-description: Laravel conventions for controllers, Actions, Eloquent, migrations, validation, security, config, queues, error handling and testing. Use when writing or reviewing PHP in a Laravel repository — anything under app/, database/, routes/, config/ or tests/ — or when a change touches models, Form Requests, Data classes, policies, jobs or schema.
+description: Laravel conventions for controllers, Actions, Eloquent, migrations, validation, security, config, queues, error handling and Playwright end-to-end tests. Use when writing or reviewing PHP in a Laravel repository — anything under app/, database/, routes/, config/ or tests/ — or when a change touches models, Form Requests, Data classes, policies, jobs or schema.
 ---
 
 # Laravel Conventions
@@ -28,7 +28,7 @@ costs more than a suboptimal one. Deviate only for a correctness or security def
 | `config/`, environment values, constants, magic strings | [`rules/config.md`](../../rules/config.md) |
 | Jobs, queueable Actions, retries, uniqueness, Horizon | [`rules/queues.md`](../../rules/queues.md) |
 | Exceptions, reporting, rendering, failure responses | [`rules/error-handling.md`](../../rules/error-handling.md) |
-| Pest/PHPUnit tests, factories, fakes, architecture tests | [`rules/testing.md`](../../rules/testing.md) |
+| Playwright end-to-end tests (browser and API) | [`rules/testing.md`](../../rules/testing.md) |
 
 A cross-cutting change usually needs more than one. A new CRUD feature touches architecture,
 validation, security, migrations and testing.
@@ -63,8 +63,8 @@ Read the project's `composer.json` scripts rather than assuming — the usual se
 ```bash
 vendor/bin/pint --dirty          # format only what you touched
 vendor/bin/phpstan analyse       # larastan; most repos here run level 9
-php artisan test --compact --filter=<Name>   # narrowest first
-php artisan test --compact       # then the suite
+php artisan test --compact       # the existing suite, if the repo has one
+npx playwright test              # end-to-end specs
 ```
 
 Architecture tests (`tests/Unit/*ArchitectureTest.php`) are where a repo encodes its own
