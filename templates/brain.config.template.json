@@ -6,6 +6,39 @@
     { "id": "web-app",     "url": "git@github.com:acme/web-app.git",     "src": ["src/"], "branch": "develop", "pull": false }
   ],
   "doc_types": ["specs", "decisions", "meeting-notes", "research", "runbooks"],
-  "graph": { "out": "graph/", "provider": "auto" }
+  "graph": { "out": "graph/", "provider": "auto" },
+  "design": {
+    "system": "DESIGN.md",
+    "build": "brand",
+    "source": { "repo": "web-app", "ref": "origin/main" },
+    "sources": ["src/styles/tokens.css", "src/design/colors.ts"],
+    "fonts": {
+      "Inter": { "400": "src/assets/fonts/Inter-Regular.woff2", "700": "src/assets/fonts/Inter-Bold.woff2" }
+    }
+  },
+  "releases": {
+    "tag_regex": "^v\\d+\\.\\d+\\.\\d+$",
+    "primary_repo": "backend-api",
+    "production_branch": "main",
+    "integration_branch": "develop",
+    "merge_style": "squash",
+    "out": "docs/releases",
+    "client_note": { "locale": "en", "dir": "ltr" },
+    "internal_note": { "locale": "en" },
+    "tests": { "backend-api": "./vendor/bin/phpunit", "web-app": "npm test" },
+    "capture": { "repo": "web-app", "apps": { "web-app": { "serve": "npm start", "base_url": "http://localhost:4200" } } }
+  },
+  "roadmap": {
+    "out": "docs/roadmap/delivery-roadmap.html",
+    "facts": "docs/roadmap/.roadmap-facts.json",
+    "specs_dir": "specs",
+    "framing": "shape-up"
+  },
+  "dashboard": {
+    "out": "docs/dashboard/product-hub.html",
+    "state": "docs/dashboard/hub-state.json",
+    "inputs": [
+      { "id": "roadmap", "path": "docs/roadmap/.roadmap-facts.json", "produced_by": "delivery-roadmap" }
+    ]
+  }
 }
-
