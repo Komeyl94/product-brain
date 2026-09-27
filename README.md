@@ -260,7 +260,10 @@ is to **declare the marketplace in your hub's `.claude/settings.json`** (committ
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "extraKnownMarketplaces": {
-    "product-brain": { "source": { "source": "github", "repo": "Whotan/product-brain" } }
+    "product-brain": {
+      "source": { "source": "github", "repo": "Whotan/product-brain" },
+      "autoUpdate": true
+    }
   },
   "enabledPlugins": {
     "product-brain@product-brain": true,
