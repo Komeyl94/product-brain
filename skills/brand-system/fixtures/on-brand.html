@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brand fixture</title>
+<style>
+/* BRAND:BEGIN */
+/* placeholder - run: brand.py inline fixtures/on-brand.html --out <tmp> */
+/* BRAND:END */
+
+/* Everything below styles itself only through --ds-* vars that brand.css ALWAYS emits,
+   so this fixture passes for any brand - with or without embedded fonts or effects. */
+@page { size: 900px 1400px; margin: 0; }
+html { min-height: 100%; background: var(--ds-wash); color: var(--ds-ink); }
+body {
+  margin: 0;
+  padding: var(--ds-space-8);
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-weight-regular);
+  line-height: var(--ds-leading-body);
+}
+main { max-width: 820px; margin-inline: auto; display: grid; gap: var(--ds-space-4); }
+h1 { font-family: var(--ds-font-display); font-weight: var(--ds-weight-bold); margin: 0; color: var(--ds-primary-strong); }
+h2 { font-family: var(--ds-font-display); font-weight: var(--ds-weight-strong); margin: 0; }
+.card {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  padding: var(--ds-space-6);
+  box-shadow: var(--ds-shadow-sm);
+}
+.inset { background: var(--ds-inset); border-radius: var(--ds-radius-md); padding: var(--ds-space-4); }
+.muted { color: var(--ds-muted); }
+.medium { font-weight: var(--ds-weight-strong); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--ds-space-2); }
+.chip {
+  border-radius: var(--ds-radius-sm);
+  padding: var(--ds-space-1) var(--ds-space-3);
+  font-weight: var(--ds-weight-strong);
+  background: color-mix(in oklab, var(--ds-primary) 12%, var(--ds-surface));
+  color: var(--ds-primary-strong);
+}
+.chip.success { background: color-mix(in oklab, var(--ds-success) 14%, var(--ds-surface)); color: var(--ds-success-ink); }
+.chip.warning { background: color-mix(in oklab, var(--ds-warning) 18%, var(--ds-surface)); color: var(--ds-warning-ink); }
+.chip.danger { background: color-mix(in oklab, var(--ds-danger) 14%, var(--ds-surface)); color: var(--ds-danger-ink); }
+.chip.info { background: color-mix(in oklab, var(--ds-info) 14%, var(--ds-surface)); color: var(--ds-info-ink); }
+.button {
+  display: inline-block;
+  background: var(--ds-primary);
+  color: var(--ds-on-primary);
+  border-radius: var(--ds-radius-sm);
+  padding: var(--ds-space-2) var(--ds-space-4);
+  font-weight: var(--ds-weight-strong);
+  box-shadow: var(--ds-shadow-md);
+}
+.accent { color: var(--ds-accent); font-weight: var(--ds-weight-bold); }
+.bars { display: grid; gap: var(--ds-space-2); }
+.bar { height: 14px; border-radius: var(--ds-radius-sm); background: var(--ds-primary-soft); }
+.bar > span { display: block; height: 100%; border-radius: inherit; background: var(--ds-primary); }
+.bar.b2 > span { background: color-mix(in oklab, var(--ds-primary) 60%, var(--ds-surface)); }
+.bar.b3 > span { background: var(--ds-accent); }
+code { font-family: var(--ds-font-mono); background: var(--ds-inset); border-radius: var(--ds-radius-sm); padding: 0 var(--ds-space-1); }
+.ltr { direction: ltr; text-align: start; }
+[lang="en"] { font-family: var(--ds-font-latin); }
+strong, b { font-weight: var(--ds-weight-bold); }
+@media screen and (max-width: 600px) { body { padding: var(--ds-space-4); } }
+</style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <h1>گزارش نمونه — Sample report</h1>
+    <p class="muted">این سند فقط از نقش‌های برند استفاده می‌کند. تاریخ: ۱۴۰۵/۰۷/۰۵ — نسخهٔ ۲٫۳</p>
+  </section>
+  <section class="card">
+    <h2>وزن‌ها و خط‌ها</h2>
+    <p>متن معمولی با وزن ۴۰۰ برای خواندن طولانی.</p>
+    <p class="medium">متن با وزن ۵۰۰ برای تأکید ملایم.</p>
+    <p><strong>متن پررنگ با وزن ۷۰۰.</strong> <span class="accent">تأکید</span></p>
+    <p class="ltr" lang="en">Latin run at 400, <span class="medium">500</span>, <b>700</b> — “quotes”, 1,234.56 € ✓</p>
+    <div class="chips">
+      <span class="chip">اصلی</span>
+      <span class="chip success">موفق</span>
+      <span class="chip warning">هشدار</span>
+      <span class="chip danger">خطا</span>
+      <span class="chip info">اطلاع</span>
+    </div>
+  </section>
+  <section class="card inset">
+    <div class="bars">
+      <div class="bar"><span style="inline-size: 82%"></span></div>
+      <div class="bar b2"><span style="inline-size: 55%"></span></div>
+      <div class="bar b3"><span style="inline-size: 23%"></span></div>
+    </div>
+    <p class="ltr" lang="en"><code>release-2.3.0</code> <span class="button">Primary action</span></p>
+    <p class="ltr muted" lang="en">Merged in PR #285; closes issue #123 and #abc.</p>
+  </section>
+</main>
+<script>
+  /* Load every embedded face up front: Chrome activates a face only once laid-out
+     content uses it, and a face used by one short run can miss the PDF. */
+  /* Prose in data strings is not a colour: these must pass. */
+  var sources = [{ title: "PR #285", note: "issue #123" }, "#abc was fixed"];
+  if (document.fonts) { document.fonts.forEach(function (face) { face.load(); }); }
+</script>
+</body>
+</html>
