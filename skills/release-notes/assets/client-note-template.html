@@ -1,0 +1,426 @@
+<meta charset="utf-8">
+<title>REPLACE-PRODUCT - REPLACE-VERSION</title>
+<meta name="release-headline" content="REPLACE - one sentence: what a person can now do (read by other skills; not the h1)">
+<style>
+/* BRAND:BEGIN */
+/* BRAND:END */
+</style>
+<style>
+  /* ─────────────────────────────────────────────────────────────────────────────
+     LAYOUT NOTES - the four things this file is shaped around.
+
+     1. ONE LANGUAGE. The client note is written in the hub's client locale
+        (releases.client_note.locale), full stop. There is no second article and
+        nothing to keep in step between two halves.
+     2. THE DESIGN SYSTEM, NOTHING ELSE. Every colour, face and radius below is a
+        var(--ds-*) role from the BRAND block above, or a color-mix() of two of
+        them. The BRAND block is compiled from the hub's DESIGN.md by the
+        brand-system skill and refreshed with `brand.py inline`; never edit it by
+        hand and never write a colour literal down here - check-brand.py fails it.
+     3. DENSITY. A 62rem column of cards: two-up where a card has no picture,
+        full-width where it does. Every item earns its space by explaining a
+        benefit. A column of one-line bullets reads as an unfinished page.
+     4. THE PDF IS THE SCREEN. There is no separate print design. The print block
+        sets a page as wide as the layout and otherwise gets out of the way. The
+        temptation to "fix" it into a paper design is exactly what made the two
+        look nothing alike.
+
+     Logical properties throughout (padding-inline, border-inline-start,
+     text-align: start), so an RTL locale falls out of the same rules.
+     ------------------------------------------------------------------------- */
+
+  :root {
+    --note-rule-strong: color-mix(in oklab, var(--ds-border) 78%, var(--ds-muted));
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: clamp(1.25rem, 3.5vw, 2.75rem) 1.1rem 4rem;
+    /* The brand's wash - a gradient, or simply the canvas colour for a brand
+       that has none. Effects are the design system's call, never this file's.
+       Scrolling, not `fixed`: a fixed gradient paints one viewport-sized copy,
+       and the shorthand has reset the colour, so a full-page capture - and any
+       page taller than the window in some viewers - goes bare white below it.
+       The PDF scrolls too, so screen and paper match. */
+    background: var(--ds-wash);
+    color: var(--ds-ink);
+    font-family: var(--ds-font-body);
+    font-size: 1rem;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Arabic-script and Hebrew copy needs more leading than a Latin page. Do not
+     tighten it to fit more in. */
+  .note[dir="rtl"] { line-height: 1.95; }
+  /* Latin runs - an LTR note, or an LTR island such as the version inside RTL
+     copy - take the design system's Latin stack (the body stack when the brand
+     names none). */
+  .note[dir="ltr"], bdi[dir="ltr"] { font-family: var(--ds-font-latin); }
+
+  .page { max-width: 62rem; margin: 0 auto; }
+
+  /* ── masthead ────────────────────────────────────────────────────────────── */
+  .masthead {
+    position: relative; overflow: hidden;
+    margin-bottom: 1.5rem; padding: clamp(1.4rem, 3vw, 2.1rem);
+    border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg);
+    background: var(--ds-surface);
+    box-shadow: var(--ds-shadow-md);
+  }
+  .masthead-top {
+    display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: space-between; gap: .75rem; margin-bottom: 1.1rem;
+  }
+  /* The product's own logo (design.logo), embedded as a data: URI by
+     scaffold-note.py - never a redrawn approximation of it. With no logo
+     configured, the product name set as a wordmark. */
+  .brand-mark { display: inline-flex; align-items: center; gap: .6rem; }
+  .brand-mark img {
+    display: block; height: 3.4rem; width: auto;
+    padding: .3rem; border-radius: var(--ds-radius-md);
+    background: var(--ds-surface);
+  }
+  /* A logo is drawn for a light ground. On the dark theme it sits on a light
+     tile instead of vanishing into the surface. Screen only: paper is light. */
+  @media screen and (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .brand-mark img {
+      background: color-mix(in oklab, var(--ds-ink) 94%, var(--ds-surface));
+    }
+  }
+  @media screen {
+    :root[data-theme="dark"] .brand-mark img {
+      background: color-mix(in oklab, var(--ds-ink) 94%, var(--ds-surface));
+    }
+  }
+  .wordmark {
+    font-family: var(--ds-font-display); font-size: 1.35rem; font-weight: var(--ds-weight-bold);
+    letter-spacing: -.01em; color: var(--ds-primary-strong);
+  }
+
+  /* The version belongs in the masthead, not only in the footer: it is the first
+     thing support asks for. */
+  .stamp-pill {
+    display: inline-flex; align-items: baseline; gap: .5rem;
+    padding: .32rem .8rem; border: 1px solid var(--note-rule-strong); border-radius: 999px;
+    background: var(--ds-canvas); font-size: .82rem; color: var(--ds-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .stamp-pill bdi { font-weight: var(--ds-weight-bold); color: var(--ds-primary-strong); }
+  /* A version label can be long (a tag like release-2026.09.1). It never breaks
+     inside itself; the pill wraps between its parts instead. */
+  .stamp-pill { flex-wrap: wrap; row-gap: 0; }
+  .stamp-pill bdi, footer bdi { white-space: nowrap; }
+
+  .eyebrow {
+    margin: 0 0 .5rem; font-size: .82rem; font-weight: var(--ds-weight-strong); color: var(--ds-primary);
+  }
+
+  h1 {
+    margin: 0 0 .6rem; font-family: var(--ds-font-display);
+    font-size: clamp(1.6rem, 3.8vw, 2.2rem);
+    font-weight: var(--ds-weight-bold); line-height: 1.45;
+    text-wrap: balance; color: var(--ds-ink);
+  }
+
+  .lede { margin: 0; font-size: 1.02rem; color: var(--ds-muted); max-width: 44rem; }
+
+  /* At a glance: three or four chips naming the headline changes. They repeat
+     what the cards below say, on purpose - most people read only this row. */
+  .glance { display: flex; flex-wrap: wrap; gap: .45rem; margin: 1.15rem 0 0; padding: 0; list-style: none; }
+  .glance li {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .3rem .7rem; border: 1px solid var(--note-rule-strong); border-radius: 999px;
+    background: var(--ds-surface); font-size: .82rem; font-weight: var(--ds-weight-strong); color: var(--ds-ink);
+  }
+  .glance li::before {
+    content: ""; flex: none; width: .42rem; height: .42rem; border-radius: 50%;
+    background: var(--ds-primary);
+  }
+
+  /* ── sections ────────────────────────────────────────────────────────────── */
+  .group { margin-top: 1.9rem; }
+  .group > h2 {
+    display: flex; align-items: center; gap: .55rem;
+    margin: 0 0 .8rem; font-family: var(--ds-font-display);
+    font-size: .88rem; font-weight: var(--ds-weight-strong); color: var(--ds-muted);
+  }
+  .group > h2::after {
+    content: ""; flex: 1 1 auto; height: 1px; background: var(--note-rule-strong);
+  }
+
+  /* A filled dot for what is new, an open ring for what got better. */
+  .mark { flex: none; width: .62rem; height: .62rem; border-radius: 50%; }
+  [data-block="new"] .mark { background: var(--ds-primary); }
+  [data-block="fixed"] .mark { border: 2px solid var(--ds-primary); }
+
+  /* ── feature cards ───────────────────────────────────────────────────────────
+     Two-up by default so the page does not run as one thin ribbon. A card with a
+     screenshot spans the full width and splits into copy + picture, because a
+     cropped screenshot at half width is unreadable. */
+  .features {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .85rem;
+    /* dense, so a half-width card backfills the gap a full-width one leaves
+       behind. Without it a lone figure-less card at the end sits beside an
+       empty half. */
+    grid-auto-flow: dense;
+  }
+  .feature {
+    display: grid; gap: 1.1rem; align-items: start;
+    padding: 1.15rem 1.25rem;
+    border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg);
+    background: var(--ds-surface); box-shadow: var(--ds-shadow-sm);
+  }
+  .feature.has-shot { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) minmax(0, 44%); }
+  /* A portrait capture - a whole phone-width screen rather than a cropped panel -
+     towers over its own copy at 44%, so it gets a narrower column instead of a
+     shorter picture. Add `tall-shot` to the card, not the figure. */
+  .feature.has-shot.tall-shot { grid-template-columns: minmax(0, 1fr) minmax(0, 28%); }
+  /* A half-width card with no partner would sit beside an empty half: the only
+     card, or the last of an odd number of figure-less cards, spans the row. */
+  .feature:only-child,
+  .feature:not(.has-shot):nth-last-child(1 of .feature:not(.has-shot)):nth-child(odd of .feature:not(.has-shot)) {
+    grid-column: 1 / -1;
+  }
+  /* `screen and` matters: the printed page is 1120px wide and must NOT collapse
+     to one column. Without the media-type qualifier this rule fires in print on
+     any viewer that reports a narrow page. */
+  @media screen and (max-width: 52rem) {
+    .features { grid-template-columns: minmax(0, 1fr); }
+    .feature.has-shot,
+    .feature.has-shot.tall-shot { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .who {
+    margin: 0 0 .45rem; font-size: .78rem; font-weight: var(--ds-weight-bold); color: var(--ds-accent);
+  }
+
+  .feature b {
+    display: block; font-family: var(--ds-font-display); font-size: 1.08rem; font-weight: var(--ds-weight-bold);
+    line-height: 1.6; color: var(--ds-ink); margin-bottom: .4rem;
+  }
+
+  /* The benefit paragraph is the point of this whole layout: two or three
+     sentences on what changes for the person, not one clipped line. */
+  .benefit { margin: 0; color: var(--ds-muted); }
+  .benefit + .benefit { margin-top: .5rem; }
+
+  /* A scenario is one concrete person doing one concrete thing. Optional - never
+     invented. */
+  .scenario {
+    margin: .8rem 0 0; padding: .7rem .9rem;
+    border-inline-start: 3px solid var(--ds-primary);
+    border-start-end-radius: var(--ds-radius-md); border-end-end-radius: var(--ds-radius-md);
+    background: var(--ds-inset);
+    font-size: .96rem; color: var(--ds-ink);
+  }
+  .scenario .label {
+    display: block; margin-bottom: .15rem;
+    font-size: .78rem; font-weight: var(--ds-weight-bold); color: var(--ds-primary-strong);
+  }
+
+  /* Where to find it. Steps, not prose - people scan this one. */
+  .where { margin: .8rem 0 0; padding: 0; list-style: none; font-size: .92rem; color: var(--ds-muted); }
+  .where li { display: flex; gap: .5rem; padding: .12rem 0; }
+  /* A single guillemet rather than an arrow: arrows are usually outside the
+     embedded subsets, and one of them drags a system font into the PDF. */
+  .where li::before { content: "\2039"; flex: none; color: var(--ds-primary); font-weight: var(--ds-weight-bold); }
+  .note[dir="ltr"] .where li::before { content: "\203A"; }
+
+  /* ── screenshots ─────────────────────────────────────────────────────────────
+     Every picture is a real capture of the app in the client locale, taken by
+     scripts/capture-figures.py and inlined as a data: URI. */
+  figure.shot { margin: 0; }
+  .shot-frame {
+    overflow: hidden; border: 1px solid var(--note-rule-strong); border-radius: var(--ds-radius-md);
+    background: var(--ds-surface); box-shadow: var(--ds-shadow-sm);
+  }
+  .shot-bar {
+    display: flex; gap: .28rem; align-items: center;
+    padding: .45rem .6rem; border-bottom: 1px solid var(--ds-border);
+    background: var(--ds-inset);
+  }
+  .shot-bar span { width: .4rem; height: .4rem; border-radius: 50%; background: var(--note-rule-strong); }
+  .shot img { display: block; width: 100%; height: auto; }
+  .shot figcaption {
+    margin-top: .5rem; font-size: .82rem; line-height: 1.7; color: var(--ds-muted);
+    text-align: start;
+  }
+
+  /* ── smaller improvements ────────────────────────────────────────────────────
+     A dense grid, because a one-line item does not deserve a full-width row. */
+  .minors { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .7rem; }
+  .minor {
+    padding: .9rem 1rem; border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg);
+    background: var(--ds-surface);
+  }
+  .minor b { display: block; font-size: .99rem; font-weight: var(--ds-weight-strong); color: var(--ds-ink); margin-bottom: .2rem; }
+  .minor span { display: block; font-size: .94rem; color: var(--ds-muted); }
+
+  /* ── footer ──────────────────────────────────────────────────────────────── */
+  footer {
+    margin-top: 2rem; padding: 1.1rem 1.25rem;
+    border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg); background: var(--ds-surface);
+    font-size: .9rem; color: var(--ds-muted);
+    display: flex; flex-wrap: wrap; gap: .4rem 1.25rem;
+    justify-content: space-between; align-items: baseline;
+  }
+  footer .stamp { font-variant-numeric: tabular-nums; }
+  footer bdi { font-weight: var(--ds-weight-strong); }
+
+  /* ── PRINT / PDF ─────────────────────────────────────────────────────────────
+     THE PDF IS THE SCREEN. Nothing here restyles the document: no white paper,
+     no reflowed columns, no shrunken type. Three mechanical things:
+
+     1. The page is as WIDE AS THE LAYOUT. A4 portrait gives about 688px of
+        printable width, which trips the narrow-viewport rule and collapses every
+        two-column card. A page 1120px wide holds the 62rem column at its intended
+        size, and viewers scale it to whatever paper they have.
+     2. Colour is FORCED ON. print-color-adjust: exact, or Chrome drops the wash,
+        the card surfaces and every tinted panel and prints on bare white.
+     3. Cards do not SPLIT across pages.
+
+     The dark theme cannot follow: paper is light. The BRAND block's own print
+     rule resets every --ds-* role to its light value at a specificity that beats
+     the dark rules, and the script at the bottom drops any dark data-theme for
+     the duration of a browser print. This file owns no tokens of its own.
+     ------------------------------------------------------------------------- */
+  @page { size: 1120px 1584px; margin: 0; }
+  @media print {
+    .masthead, .feature, .shot-frame {
+      /* NO SHADOW IN PRINT - the one deliberate difference. A blurred box-shadow
+         cannot be expressed as vector PDF, so Chrome rasterises every shadowed
+         box into an image mask at print DPI; on a typical note that was ~70% of
+         the file's bytes for a glow the pixel comparison cannot even see. The
+         cards still read as raised: surfaces on the brand's wash. */
+      box-shadow: none;
+    }
+    html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body {
+      padding: 2.25rem 2rem 2.5rem;
+    }
+    .feature, .minor, .masthead, footer, figure.shot { break-inside: avoid; }
+    .group > h2 { break-after: avoid; }
+  }
+</style>
+
+<div class="page">
+  <!--
+    CONTRACT - read before editing.
+
+    1. One language: REPLACE-LOCALE. Every product noun comes from the app's own
+       REPLACE-LOCALE i18n value (facts.repos[].i18n[].client), never translated
+       from another language and never taken from a commit subject.
+    2. No technical vocabulary. Say what a person can now do.
+    3. In an RTL note, an identifier (the version) stays LTR: wrap it in
+       <bdi dir="ltr">, and separate it from the date with an em dash, never "·".
+    4. An item with no user-visible effect does not belong on this page at all.
+    5. Every card in the "new" block carries a .benefit paragraph - two or three
+       sentences on what changes for the person. The verifier fails a card
+       without one.
+    6. A .scenario is one person doing one concrete thing. Optional. Never
+       invented: if you cannot describe a real use, leave it out.
+    7. Screenshots are captured from the running app in REPLACE-LOCALE by
+       scripts/capture-figures.py and inlined as data: URIs. Never hand-draw a
+       screen, and never show a control this release did not ship.
+    8. Style only through var(--ds-*) - colours, faces, weights, radii, the
+       wash and the shadows. The BRAND block is generated.
+    9. `data-chrome` marks the page's own fixed wording (labels, stamp, footer).
+       The verifier exempts it from the jargon lists; never put copy in it.
+  -->
+
+  <article class="note" data-lang="REPLACE-LOCALE" lang="REPLACE-LOCALE" dir="REPLACE-DIR">
+    <header class="masthead">
+      <div class="masthead-top">
+        <span class="brand-mark">REPLACE-LOGO</span>
+        <span class="stamp-pill" data-chrome>REPLACE-LABEL-VERSION <bdi dir="ltr">REPLACE-VERSION</bdi> — REPLACE-DATE-LOCAL</span>
+      </div>
+      <p class="eyebrow" data-chrome>REPLACE-LABEL-EYEBROW</p>
+      <h1>REPLACE - a short, human headline</h1>
+      <p class="lede">REPLACE - one or two sentences on what this update makes better for the person reading.</p>
+      <ul class="glance">
+        <li>REPLACE - headline change 1</li>
+        <li>REPLACE - headline change 2</li>
+      </ul>
+    </header>
+
+    <section class="group" data-block="new">
+      <h2 data-chrome><span class="mark"></span>REPLACE-LABEL-NEW</h2>
+      <div class="features">
+        <article class="feature has-shot" data-id="REPLACE-slug">
+          <div>
+            <p class="who">REPLACE - who it is for</p>
+            <b>REPLACE - the thing, named as the UI names it</b>
+            <p class="benefit">REPLACE - two or three sentences: what a person can now do, and what it saves them.</p>
+            <p class="scenario">
+              <span class="label" data-chrome>REPLACE-LABEL-EXAMPLE</span>
+              REPLACE - one real, concrete situation.
+            </p>
+            <ul class="where">
+              <li>REPLACE - where to find it, in the words the menu uses.</li>
+            </ul>
+          </div>
+          <figure class="shot" data-shot="REPLACE-slug">
+            <div class="shot-frame">
+              <div class="shot-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+              <img data-figure="REPLACE-slug" data-locale="REPLACE-LOCALE" src="" alt="REPLACE - what the screen contains, for someone who cannot see it">
+            </div>
+            <figcaption>REPLACE - what to notice in the picture.</figcaption>
+          </figure>
+        </article>
+
+        <article class="feature" data-id="REPLACE-slug-2">
+          <div>
+            <p class="who">REPLACE - who it is for</p>
+            <b>REPLACE - the thing</b>
+            <p class="benefit">REPLACE - two or three sentences.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="group" data-block="fixed">
+      <h2 data-chrome><span class="mark"></span>REPLACE-LABEL-FIXED</h2>
+      <div class="minors">
+        <div class="minor" data-id="REPLACE-slug-3">
+          <b>REPLACE - the thing</b>
+          <span>REPLACE - what stopped going wrong, from the person's side.</span>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span data-chrome>REPLACE-LABEL-SUPPORT</span>
+      <span class="stamp" data-chrome>REPLACE-PRODUCT <bdi dir="ltr">REPLACE-VERSION</bdi> — REPLACE-DATE-LOCAL</span>
+    </footer>
+  </article>
+</div>
+
+<script>
+  // Say the language on the root element, which the Artifact wrapper owns rather
+  // than this file.
+  document.documentElement.lang = "REPLACE-LOCALE";
+  document.documentElement.dir = "REPLACE-DIR";
+
+  // Paper is light. A reader who forced the dark theme gets it back after print.
+  (function () {
+    var root = document.documentElement, saved = null;
+    window.addEventListener("beforeprint", function () {
+      saved = root.getAttribute("data-theme");
+      root.setAttribute("data-theme", "light");
+    });
+    window.addEventListener("afterprint", function () {
+      if (saved === null) root.removeAttribute("data-theme");
+      else root.setAttribute("data-theme", saved);
+    });
+  })();
+
+  // Load every embedded face up front. Chrome only activates a webfont that
+  // laid-out content actually uses, and decides that mid-paint: without this a
+  // face used by one short run - a Latin version string, a dash the primary face
+  // lacks - can fall back in the PDF while looking right on screen.
+  if (document.fonts && document.fonts.forEach) {
+    document.fonts.forEach(function (face) { face.load().catch(function () {}); });
+  }
+</script>
