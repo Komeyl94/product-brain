@@ -128,7 +128,7 @@ Every skill resolves a repo's clone the same way: `repos[].path` if the repo ent
 `hub.name` is nested (`{"hub": {"name": "…"}}`), which is a **different key** from the top-level
 `hub_name` string `bin/pb` reads for the generated README's heading. Set both if you want the
 generated README's heading and the dashboard/release-notes wordmark to agree — see
-[Known gap](#known-gap-hubname-vs-hub_name) below.
+[Hub name](#hub-name-hubname-or-hub_name) below.
 
 ### `releases`
 
@@ -186,14 +186,12 @@ Workers and the skills themselves never edit `brain.config.json` — a missing o
 the script with the key's name and an example value; the user (or Claude, on their behalf) edits
 the file.
 
-### Known gap: `hub.name` vs `hub_name`
+### Hub name: `hub.name` or `hub_name`
 
-The four artifact skills read a nested `{"hub": {"name": "…"}}`. The pre-existing `bin/pb` instead
-reads a flat top-level `"hub_name"` string when rendering a hub's generated README heading. These
-are two different keys with overlapping purpose, not one key read two ways — a hub that wants both
-the README heading and the dashboard/release-notes wordmark to show its name currently sets both.
-Unifying them is a `bin/pb` change, out of scope here; this page just names the seam so nobody
-"fixes" one call site and quietly breaks the other.
+`bin/pb` and brainify write a flat top-level `"hub_name"`; hand-made hubs often use a nested
+`{"hub": {"name": "…"}}`. The artifact skills accept either (nested wins when both are set).
+`bin/pb` still reads only `hub_name` for the generated README heading, so a hub that uses the nested
+form and wants that heading sets both.
 
 ---
 

@@ -112,7 +112,9 @@ class Config:
 
     @property
     def product(self) -> str:
-        return self.get("hub.name")
+        # `pb` and brainify write a flat `hub_name`; hand-made hubs often use `hub.name`.
+        flat = self.data.get("hub_name") if isinstance(self.data, dict) else None
+        return self.get("hub.name", None) or flat or self.get("hub.name")
 
     @property
     def client_locale(self) -> str:

@@ -566,7 +566,7 @@ def main():
             check("page title", title == want_title, "title is '%s'" % title,
                   "keep <title>%s</title> (dashboard.title) so the artifact keeps its name" % want_title)
         else:
-            name = cfg.get("hub", {}).get("name", "")
+            name = (cfg.get("hub") or {}).get("name") or cfg.get("hub_name", "")
             ok = bool(title) and (not name or name in title) and not re.search(r"\d{4}-\d{2}|\d{1,2} \w+ \d{4}", title)
             check("page title", ok, "title is '%s'" % title,
                   "keep a stable, dateless <title> naming the product (or set dashboard.title) so "
