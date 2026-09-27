@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "gitlab": {
+      "command": "glab",
+      "args": ["mcp", "serve"],
+      "env": { "GITLAB_HOST": "<gitlab-host>" }
+    },
+    "jira": {
+      "command": "uvx",
+      "args": ["mcp-atlassian"],
+      "env": { "JIRA_URL": "<jira-url>" }
+    }
+  }
+}

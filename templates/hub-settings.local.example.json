@@ -1,0 +1,11 @@
+{
+  "//": "Copy to .claude/settings.local.json (git-ignored) — or say 'set up my connections' and Claude does it. Tokens are a FALLBACK: delete GITLAB_TOKEN when `glab auth login` works (a stale token overrides the login and gives 401); delete the JIRA_* lines when you already have your own Jira MCP server (then list 'jira' in disabledMcpjsonServers so yours is used); SONAR_* is optional, only for SonarQube issue details. Type token values here yourself — never paste them into the chat.",
+  "env": {
+    "GITLAB_TOKEN": "<only-if-glab-auth-login-is-not-possible>",
+    "JIRA_PERSONAL_TOKEN": "<jira-server-or-dc-personal-access-token>",
+    "SONAR_HOST_URL": "<optional-sonarqube-url>",
+    "SONAR_TOKEN": "<optional-sonarqube-user-token>"
+  },
+  "enabledMcpjsonServers": ["gitlab", "jira"],
+  "disabledMcpjsonServers": []
+}
