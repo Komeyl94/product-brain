@@ -75,9 +75,12 @@ searchable knowledge sitting right next to the code it affects.
 "graph-assisted": after a refresh, the map already groups related things, so you mostly just tidy
 up names.
 
+**Also required:** **docs/knowledge/** — the stable facts about your product: what it is, who the
+stakeholders are, what's live, how you measure it, and how the team works.
+
 **Everything else is yours:** a `docs/` folder for specs, decisions, meeting notes, research,
-runbooks — or any type you invent. Write in Markdown when it's easy; drop in PDFs or recordings when
-that's the natural form.
+runbooks — or any type you invent (add it to `brain.config.json` first; nothing else goes at the
+top level). Write in Markdown when it's easy; drop in PDFs or recordings when that's the natural form.
 
 ---
 

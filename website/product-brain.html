@@ -333,7 +333,7 @@
     <p><strong>domains.md</strong> lists the major areas of your product (like "Scheduling" or "Billing") with an owner and status. It's "graph-assisted": after a refresh, the map already groups related things into clusters, so Claude can suggest the domains and you just tidy up the names. Less typing, same value.</p>
 
     <h2>Everything else is yours <span class="pill opt">your choice</span></h2>
-    <p>The <code>docs/</code> folder is open-ended. Keep specs, decisions, meeting notes, research, runbooks — or invent your own type by adding it to <code>brain.config.json</code>. Write in Markdown when you can (it's simplest), but drop in PDFs or recordings whenever that's the natural form. You never have to link documents together by hand — the map connects related things automatically.</p>
+    <p>The <code>docs/</code> folder is open-ended. One type is required, <code>docs/knowledge/</code>, for the stable facts about your product. Beyond that, keep specs, decisions, meeting notes, research, runbooks — or invent your own type by adding it to <code>brain.config.json</code>. That's the only way a new folder joins the hub, so the top level stays tidy. Write in Markdown when you can (it's simplest), but drop in PDFs or recordings whenever that's the natural form. You never have to link documents together by hand — the map connects related things automatically.</p>
 
     <h3>What each file is for, at a glance</h3>
     <dl class="annot">
@@ -341,6 +341,7 @@
       <dt>constitution.md</dt><dd>Rules every change must respect.</dd>
       <dt>vocabulary.md</dt><dd>The glossary tying product words to code words.</dd>
       <dt>domains.md</dt><dd>The product's big areas, owners, and status.</dd>
+      <dt>docs/knowledge/</dt><dd>Stable product facts: overview, stakeholders, status, metrics.</dd>
       <dt>docs/&lt;type&gt;/</dt><dd>Your actual knowledge, grouped however you like.</dd>
       <dt>workflows/&lt;role&gt;.md</dt><dd>A short "how I use the hub" note per role.</dd>
       <dt>graph/</dt><dd>The map. Built by refresh — don't edit by hand.</dd>

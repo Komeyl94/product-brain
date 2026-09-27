@@ -22,6 +22,7 @@
     "allow": [
       "Bash(pb sync:*)",
       "Bash(pb status)",
+      "Bash(pb check:*)",
       "Bash(pb find:*)",
       "Bash(pb version:*)",
       "Bash(pb adopt:*)",

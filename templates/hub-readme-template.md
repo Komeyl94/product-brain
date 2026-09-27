@@ -128,6 +128,10 @@ Just ask. Some examples:
 | `.claude/settings.local.json` | **Your** tokens and personal settings | **Never** |
 | `repos/` | Working copies of the apps (`pb sync` creates them) | No |
 | `{{GRAPH}}` | The knowledge graph (`pb sync` builds it) | No |
+| `.work/` | Scratch: command output, exports, temp files | No |
+
+Nothing else goes at the top level. A new kind of document gets a new doc type in
+`brain.config.json` first. Say "tidy the hub" and Claude runs `pb check` to list anything out of place.
 
 ## If something goes wrong
 
@@ -154,6 +158,7 @@ Just ask. Some examples:
 pb sync                 # pull the hub + tracked repos, rebuild the graph (incremental)
 pb sync --rebuild       # ignore the cache and rebuild from scratch
 pb status               # hub health at a glance
+pb check                # list files outside the hub layout
 pb find <term> [alias]  # search the graph for code symbols behind a product term
 pb adopt <path>         # move an existing local checkout into repos/ (no re-clone)
 ```

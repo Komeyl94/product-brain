@@ -78,6 +78,7 @@ acme-brain/                          ← the hub: its own git repo, single sourc
   vocabulary.md                      glossary: product term ↔ code term   (CORE, required)
   domains.md                         domain map: area → owner, status, which repos   (recommended, graph-assisted)
   docs/                              extensible, typed knowledge — Markdown-first (multimodal supported)
+    knowledge/                       stable product facts: overview, stakeholders, status, metrics   (required)
     specs/                           authored however the team likes (Spec Kit, RFC, plain MD…)
     decisions/                       ADRs
     meeting-notes/                   ← teams add types like this freely
@@ -88,7 +89,13 @@ acme-brain/                          ← the hub: its own git repo, single sourc
   graph/                             graphify output: graph.json, GRAPH_REPORT.md, graph.html
   repos/                             FULL working clones of the apps — developers work in them here
   .graphifyignore                    managed: graphify skips graph/, keeps repos/
+  .work/                             scratch + command output (git-ignored, never knowledge)
 ```
+
+**The top level is closed.** Nothing but the entries above (plus tooling dot-files) lives there. A
+new kind of content becomes a registered doc type under `docs/`, never a new top-level folder.
+`pb check` lists anything out of place, and the plugin runs it as a Claude Code Stop hook
+(`pb check --hook`, new or changed files only), so drift is caught the moment it's created.
 
 **The hub is the developer's workspace.** Each app is cloned into `repos/<id>` as a full working
 clone (with its own Git remote); developers do their actual work there, alongside the constitution,
@@ -157,12 +164,12 @@ Consequences for the schema:
        { "id": "backend-api", "url": "git@github.com:acme/backend-api.git", "src": ["app/"] },
        { "id": "web-app",     "url": "git@github.com:acme/web-app.git",     "src": ["src/"] }
      ],
-     "doc_types": ["specs", "decisions", "meeting-notes", "research", "runbooks"],
+     "doc_types": ["knowledge", "specs", "decisions", "meeting-notes", "research", "runbooks"],
      "graph": { "out": "graph/" }
    }
    ```
 
-`doc_types` is the extensibility hook: add a type here and `brainify` recognizes it as a first-class knowledge area.
+`doc_types` is the extensibility hook: add a type here and `brainify` recognizes it as a first-class knowledge area. It is also the *only* sanctioned way to add a folder to a hub. `knowledge` is required in every hub.
 
 ---
 

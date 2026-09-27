@@ -25,7 +25,7 @@ and meeting recordings) are welcome as source material too.
 
 ## Step 0 — Orient
 
-One sentence: "Auditing this Product Brain hub — checking the required core, config, doc types, and graph freshness." Don't lecture about the framework.
+One sentence: "Auditing this Product Brain hub — checking the required core, config, doc types, layout, and graph freshness." Don't lecture about the framework.
 
 Determine whether you're operating **on an existing hub** (a `brain.config.json` is present) or **creating a new one**.
 
@@ -101,6 +101,9 @@ test -f brain.config.json && echo "config: PRESENT" || echo "config: MISSING"
 # Doc types present
 test -d docs && echo "doc types: $(ls -1 docs 2>/dev/null | tr '\n' ' ')" || echo "docs/: MISSING"
 
+# Layout — stray top-level files/folders, unregistered docs/ folders, missing required types
+pb check | head -30
+
 # Graph + freshness
 if [ -f graph/graph.json ]; then
   AGE=$(( ( $(date +%s) - $(stat -f %m graph/graph.json 2>/dev/null || stat -c %Y graph/graph.json) ) / 86400 ))
@@ -144,7 +147,8 @@ Render a compact table with ✅ / ⚠️ / ❌ and a one-line note each:
 | Required | `vocabulary.md` | ✅/❌ |
 | Recommended | `domains.md` (graph-assisted) | ✅/⚠️/➖ |
 | Config | `brain.config.json` | ✅/❌ |
-| Docs | registered doc types populated | ✅/⚠️/❌ |
+| Docs | registered doc types populated (incl. the required `knowledge`) | ✅/⚠️/❌ |
+| Layout | nothing outside the hub layout (`pb check`) | ✅/⚠️ |
 | Graph | `graph/graph.json` built & fresh (<7d) | ✅/⚠️/❌ |
 | Tool | graphify installed | ✅/❌ |
 | Surfaces | `.claude/settings.json` declares the marketplace (loads in IDE/desktop/cloud, not just CLI) | ✅/➖ |
@@ -185,7 +189,7 @@ If there's no `brain.config.json`, this is a new hub. The hub should be **its ow
 Copy `brain.config.template.json` to `brain.config.json` and fill it in by asking:
 1. "What's the hub name?"
 2. "Which apps should it cover?" For each, get an `id`, the git `url`, and source dir(s) (e.g. `app/`, `src/`).
-3. "Which doc types do you want? Defaults: specs, decisions, meeting-notes, research, runbooks. Add your own freely."
+3. "Which doc types do you want? `knowledge` is required (stable product facts). Defaults also include specs, decisions, meeting-notes, research, runbooks. Add your own freely."
 
 **The hub is the developer's workspace.** `pb sync` clones each app into `repos/<id>` as a *full
 working clone* — developers do their actual work there, inside the hub, so they sit right next to the
@@ -337,6 +341,17 @@ resort, not the default.
 
 Confirm the doc types in `brain.config.json`. Offer the shipped templates (`spec-template.md`, `doc-types/meeting-note-template.md`, `doc-types/decision-template.md`) but make clear teams can use any format. Knowledge the team authors goes in as Markdown under `docs/<type>/`; native artifacts (a recorded call, a PDF brief) can be dropped in as-is and graphify will ingest them.
 
+**`docs/knowledge/` is required.** It holds the stable product facts that aren't rules
+(constitution), terms (vocabulary), or areas (domains): what the product is and who it's for,
+stakeholders and how they work, feature status, metrics, and ways of working. It's the context
+Claude reads first. Offer to seed `docs/knowledge/overview.md` from a short interview.
+
+**The layout is the standard.** The top level is closed (core files, `docs/`, `workflows/`,
+`templates/`, dot-files, `repos/`, the graph folder). Every other kind of content becomes a
+registered doc type, never a new top-level folder. Scratch and command output go in `.work/`. The
+plugin runs `pb check --hook` when Claude finishes each reply, so new files in the wrong place are
+caught at once. `pb check` lists everything out of place for a cleanup.
+
 ### Phase G — Map domains (recommended, graph-assisted)
 
 Domains aren't required, and they're partly derivable. Read the graph's Leiden communities and propose them as candidate domains; use `pb find` to confirm the key entities per area. Then use `domains-template.md` to capture, per area: responsibility, owner, status, repos, core features, and key terms.
@@ -424,6 +439,8 @@ you cannot find — never copy values from another hub.
 | Graph > 7 days | "Re-run `pb sync` — the code may have drifted." |
 | No domains, has graph | "Map domains from the graph's communities (recommended)." |
 | Doc type registered but empty | "Seed the first doc for [type]." |
+| `knowledge` not registered | "Register the required `knowledge` doc type and move your product facts into `docs/knowledge/`." |
+| `pb check` lists files | "Some files are outside the hub layout — I'll propose where each belongs." (Propose; move only once the user agrees.) |
 | No workflows | "Add role workflows so each role has a lens." |
 | Cross-OS / Connections / README / Sonar runbook rows not ✅ | "Upgrade the hub — cross-OS README, UTF-8, tool connections (I'll ask whether to open an MR)." |
 | All green | "Keep it fresh: `pb sync` on a schedule; record decisions as they happen." |
