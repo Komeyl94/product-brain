@@ -1,6 +1,8 @@
 {
   "version": "1.0.0",
   "hub_name": "acme-brain",
+  "hub": { "name": "Acme" },
+  "workspace": { "repos_dir": "repos" },
   "repos": [
     { "id": "backend-api", "url": "git@github.com:acme/backend-api.git", "src": ["app/"] },
     { "id": "web-app",     "url": "git@github.com:acme/web-app.git",     "src": ["src/"], "branch": "develop", "pull": false }
@@ -14,31 +16,51 @@
     "sources": ["src/styles/tokens.css", "src/design/colors.ts"],
     "fonts": {
       "Inter": { "400": "src/assets/fonts/Inter-Regular.woff2", "700": "src/assets/fonts/Inter-Bold.woff2" }
-    }
+    },
+    "logo": "src/assets/logo.svg"
   },
   "releases": {
     "tag_regex": "^v\\d+\\.\\d+\\.\\d+$",
+    "version_regex": "^v(\\d+\\.\\d+\\.\\d+)$",
+    "release_branch_regex": "^(release|hotfix)[-/._]",
     "primary_repo": "backend-api",
     "production_branch": "main",
     "integration_branch": "develop",
     "merge_style": "squash",
     "out": "docs/releases",
-    "client_note": { "locale": "en", "dir": "ltr" },
+    "specs_dir": "docs/specs",
+    "areas": [
+      ["^app/Http/", "http-routes"],
+      ["^src/app/", "frontend"]
+    ],
+    "client_note": {
+      "locale": "en",
+      "dir": "ltr",
+      "calendar": "gregorian",
+      "product_name": "Acme",
+      "i18n": [{ "repo": "web-app", "path": "src/assets/i18n/en.json" }]
+    },
     "internal_note": { "locale": "en" },
     "tests": { "backend-api": "./vendor/bin/phpunit", "web-app": "npm test" },
-    "capture": { "repo": "web-app", "apps": { "web-app": { "serve": "npm start", "base_url": "http://localhost:4200" } } }
+    "capture": {
+      "repo": "web-app",
+      "apps": { "web-app": { "serve": "npm start -- --port 4200", "base_url": "http://localhost:4200", "base_path": "" } }
+    }
   },
   "roadmap": {
     "out": "docs/roadmap/delivery-roadmap.html",
     "facts": "docs/roadmap/.roadmap-facts.json",
-    "specs_dir": "specs",
-    "framing": "shape-up"
+    "specs_dir": "docs/specs",
+    "framing": "shape-up",
+    "okrs": "docs/okrs/tracker.html"
   },
   "dashboard": {
     "out": "docs/dashboard/product-hub.html",
     "state": "docs/dashboard/hub-state.json",
+    "title": "Acme — Product Hub",
     "inputs": [
-      { "id": "roadmap", "path": "docs/roadmap/.roadmap-facts.json", "produced_by": "delivery-roadmap" }
+      { "id": "roadmap", "path": "docs/roadmap/.roadmap-facts.json", "produced_by": "delivery-roadmap" },
+      { "id": "goals", "path": "docs/okrs/tracker.html", "produced_by": null, "kind": "goals", "max_age_days": 7 }
     ]
   }
 }

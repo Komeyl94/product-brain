@@ -1,6 +1,7 @@
 {
   "version": "1.0.0",
   "hub_name": "todo-brain",
+  "hub": { "name": "Todo" },
   "repos": [
     { "id": "todo-api", "url": "git@github.com:example/todo-api.git", "src": ["app/"] },
     { "id": "todo-web", "url": "git@github.com:example/todo-web.git", "src": ["src/"] }
@@ -18,7 +19,11 @@
     "integration_branch": "develop",
     "merge_style": "squash",
     "out": "docs/releases",
-    "client_note": { "locale": "en", "dir": "ltr" },
+    "client_note": {
+      "locale": "en",
+      "dir": "ltr",
+      "i18n": [{ "repo": "todo-web", "path": "src/assets/i18n/en.json" }]
+    },
     "internal_note": { "locale": "en" },
     "tests": { "todo-api": "./vendor/bin/phpunit", "todo-web": "npm test" }
   },
@@ -27,5 +32,12 @@
     "facts": "docs/roadmap/.roadmap-facts.json",
     "specs_dir": "docs/specs",
     "framing": "none"
+  },
+  "dashboard": {
+    "out": "docs/dashboard/product-hub.html",
+    "state": "docs/dashboard/hub-state.json",
+    "inputs": [
+      { "id": "roadmap", "path": "docs/roadmap/.roadmap-facts.json", "produced_by": "delivery-roadmap" }
+    ]
   }
 }
