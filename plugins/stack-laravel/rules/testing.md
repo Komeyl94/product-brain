@@ -1,28 +1,106 @@
 # Testing
 
-## Match the repo's dialect
+Pest 4 on PHPUnit, against PostgreSQL. If the repo's existing tests clearly follow a different
+convention, match the file you are in — never mix two styles in one file.
 
-Pest supports `test()` and `it()`. Check a sibling test file and use the same one; a file mixing
-both reads as two authors arguing. Same for `describe()` blocks — some repos forbid them
-outright, so look before nesting.
+## Layout
 
-Generate with `php artisan make:test --pest <Name> --no-interaction`. The `{name}` must not repeat
-the suite directory: `make:test --pest Feature/OrderTest` produces `tests/Feature/Feature/OrderTest.php`.
+```
+tests/
+├── Pest.php          # bindings, global beforeEach, persona and fixture helpers
+├── TestCase.php      # near-empty base class
+├── Support/          # final helper classes: scenarios, payload builders, process racers
+├── Assets/           # fixture files (CSV, XLSX, PDF, images)
+├── Unit/             # one class at a time, folders mirror app/ layers (Actions/, Enums/, …)
+│   └── ArchitectureTest.php
+├── Feature/          # routes and commands end to end, folders mirror the product (Catalog/, Orders/, …)
+├── Concurrency/      # real-process race tests (see below)
+└── e2e/              # Playwright specs — see stack-inertia's testing rule
+```
 
-Keep `tests/TestCase.php` empty and put shared helpers, bindings and macros in `tests/Pest.php`, so
-there is one place to look for global test setup.
+- **`Unit/` mirrors `app/` layers** and still hits the database — "unit" means "one class", not "no IO".
+- **`Feature/` mirrors the product**: one folder per domain or area, driving real routes and commands.
+- **Multi-step setup that several files share** goes in `tests/Support/` as a `final` class in the
+  `Tests\Support` namespace (`OrderListScenario`, `AdjustmentPayload`), not copy-pasted arrange blocks.
+- `phpunit.xml` defines one suite per top-level folder (`Unit`, `Feature`, `Concurrency`).
 
-## Cover the refusal path, not just the happy path
+Generate with `php artisan make:test --pest <Name> --no-interaction`. The name must not repeat the
+suite directory: `make:test --pest Feature/OrderTest` produces `tests/Feature/Feature/OrderTest.php`.
 
-Most production fixes in these repos are guards that were missing: a state that should have
-blocked an allocation, an owner check that was never applied. A test that only asserts the success
-case cannot fail when the guard is deleted.
-
-For every Action, assert at least: it does the thing; it refuses when the precondition fails; and
-it leaves no partial write behind when it refuses.
+## `tests/Pest.php` is the one place for global setup
 
 ```php
-it('refuses to allocate against a locked order', function (): void {
+pest()
+    ->extend(TestCase::class)
+    ->use(LazilyRefreshDatabase::class)
+    ->beforeEach(function (): void {
+        Http::preventStrayRequests();                     // no test may reach a real API
+        app()['cache']->forget('spatie.permission.cache'); // if spatie/laravel-permission is used
+    })
+    ->in('Feature', 'Unit');
+
+// Concurrency tests commit real rows, so no transaction wrapper there.
+pest()->extend(TestCase::class)->in('Concurrency');
+```
+
+Global helper functions live here too, with a docblock each:
+
+- **Persona helpers** named after the role a test acts as — `catalogAdmin()`, `tripViewer()` — each
+  creating a user and granting an **explicit permission subset** through one shared
+  `syncRoleAndPermissions($user, $role, [...])` helper. A test reads as "a trip viewer cannot create
+  a trip", and the permission list lives in one place.
+- **Request helpers** for an endpoint many tests post to (`postTrip($user, $payload)`), where keys
+  left out of the payload are absent from the request, so a missing field can be tested as well as an
+  invalid one.
+- **Fixture builders** for third-party tables that ship no factories.
+
+Keep `tests/TestCase.php` near-empty — at most a small helper that genuinely needs `$this`.
+
+## Test style
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use App\Models\Category;
+
+uses()->group('categories.feature');
+
+test('guests cannot create a category', function (): void {
+    $this->post('/categories', ['name' => 'Dairy'])->assertRedirect('/login');
+});
+
+test('duplicate top-level category name is rejected', function (): void {
+    $user = catalogAdmin();
+    Category::factory()->create(['name' => 'Dairy']);
+
+    $this->actingAs($user)->post('/categories', ['name' => 'Dairy'])
+        ->assertInvalid(['name' => 'Duplicate top-level category name.']);
+});
+```
+
+- **`test()`, not `it()` or `describe()`.** Names are plain sentences about behaviour. Add the
+  ticket key when a test pins a specific fix: `test('an arrived line reads arrived - PROJ-926', …)`.
+- **Typed closures**: `function (): void`, and `declare(strict_types=1);` in every test file.
+- **One group per file**, dot-notation by area then layer: `categories.feature`,
+  `orders.unit.actions`, `iam.unit`, `architecture`. Run a slice with `--group=orders.unit.actions`.
+- **Unit tests resolve the class from the container** — `app(DeriveOrderLineStatusAction::class)->execute(...)`
+  — and use `factory()->make()` (unsaved) when the code under test is pure.
+
+## What every feature needs covered
+
+Most production fixes are guards that were missing. For each route or Action assert at least:
+
+1. **Guests** are redirected to login (or get 401 on JSON endpoints).
+2. **A user without the permission** is refused (`assertForbidden()`), and **one with it** succeeds.
+3. **The happy path** — the response *and* the persisted state (`assertDatabaseHas`, `assertModelExists`).
+4. **Each validation rule** — `assertInvalid(['field' => 'the exact message'])`.
+5. **The refusal path** — it refuses when a precondition fails and leaves no partial write behind.
+6. **Side effects the domain promises** — an audit entry, a dispatched job, a sent mail.
+
+```php
+test('allocation is refused against a locked order', function (): void {
     $order = Order::factory()->locked()->create();
 
     expect(fn () => app(AllocateOrderAction::class)->execute($order))
@@ -32,7 +110,17 @@ it('refuses to allocate against a locked order', function (): void {
 });
 ```
 
-## Factory states, never attribute arrays
+For Inertia pages, assert the component and the props that matter:
+
+```php
+$response->assertInertia(fn ($page) => $page
+    ->component('orders/index')
+    ->has('orders.data', 2)
+    ->where('filters.status', 'open')
+);
+```
+
+## Factory states, never attribute soup
 
 ```php
 // Wrong — the reader has to know what these columns mean together
@@ -40,31 +128,20 @@ User::factory()->create(['email_verified_at' => null, 'locked_until' => now()->a
 
 // Right
 User::factory()->unverified()->locked()->create();
+Inventory::factory()->ofSku($sku)->holding(60)->create();
 ```
 
-Check the factory for an existing state before adding one. States name a business condition once,
-so when the columns behind "locked" change, one file changes instead of forty.
+Check the factory for an existing state before adding one — states name a business condition once.
+Use `recycle()` when nested factories must share one instance.
 
-Use `recycle()` when several nested factories must share one instance — without it each nested
-factory creates its own, and a test asserting "the airline on the ticket equals the airline on the
-flight" fails for reasons that have nothing to do with the code under test.
+## Fakes, time and the network
 
-```php
-Ticket::factory()->recycle(Airline::factory()->create())->create();
-```
-
-## Fake after you build
-
-```php
-// Wrong — factories rely on model events (UUID generation, slug creation);
-// faking first produces models missing those fields
-Event::fake();
-$user = User::factory()->create();
-
-// Right
-$user = User::factory()->create();
-Event::fake();
-```
+- Build models **before** `Event::fake()` / `Queue::fake()` — factories rely on model events.
+- Control time with `$this->travelTo(...)` / `$this->freezeTime()`, never `sleep()`.
+- `Http::preventStrayRequests()` is global (see `Pest.php`); fake the client per test with
+  `Http::fake()` (or Saloon's `MockClient`) and assert on the request you would have sent.
+- `phpunit.xml` forces safe drivers: `CACHE_STORE=array`, `QUEUE_CONNECTION=sync`,
+  `MAIL_MAILER=array`, `SESSION_DRIVER=array`, `BCRYPT_ROUNDS=4`, and a dedicated test database.
 
 ## Assert against models and semantics
 
@@ -74,54 +151,56 @@ Event::fake();
 | `assertSuccessful()` | `assertStatus(200)` |
 | `assertForbidden()` | `assertStatus(403)` |
 | `assertNotFound()` | `assertStatus(404)` |
+| `assertInvalid(['field' => 'message'])` | `assertSessionHasErrors('field')` |
 
-`assertStatus(200)` passes for a page that rendered an error inside a 200 response.
+## Datasets for matrices
 
-## Database
-
-Prefer `LazilyRefreshDatabase` — it skips the migration run when the schema is already current,
-which is most local runs. Tests are wrapped in a transaction and rolled back, so never rely on data
-left behind by another test.
-
-## No network in tests, ever
-
-```php
-Http::preventStrayRequests();   // in tests/Pest.php, globally
-```
-
-A test that reaches a real API is not a test — it fails when the network does, passes when the
-third party is broken but returns 200, and leaks credentials into CI logs. Fake the client
-(`Http::fake()`, Saloon's `MockClient`) and assert on the request you would have sent.
-
-## Architecture tests are how a repo enforces its own rules
-
-```php
-arch('controllers')->expect('App\Http\Controllers')->toHaveSuffix('Controller')->toBeFinal();
-```
-
-They are cheap and they catch the conventions no linter knows about: policies that are bare
-permission proxies, Data classes with an unvalidated enum property, Actions mutating a tracked
-model without writing an audit row. When one fails, read it — it is documenting a local rule. Never
-delete or weaken a test to make a change pass, and never remove a test without asking.
-
-## Datasets for repetitive cases
-
-Validation rules and permission matrices are the usual candidates. One test with a dataset beats
+Permission matrices and validation variants use `->with([...])` — one test with a dataset beats
 twelve near-identical tests that drift apart.
 
+## Architecture tests are how the repo enforces its own rules
+
+`tests/Unit/ArchitectureTest.php` holds one Pest arch test per layer contract, plus separate
+`*ArchitectureTest.php` files for cross-cutting rules (audit coverage, enum validation):
+
 ```php
-it('rejects an invalid status', function (string $status): void {
-    $this->putJson(route('products.update', $product), ['status' => $status])
-        ->assertInvalid('status');
-})->with(['', 'pending', 'PUBLISHED']);
+uses()->group('architecture');
+
+test('no debugging code anywhere')
+    ->expect(['dd', 'dump', 'var_dump', 'ray', 'exit', 'die', 'print_r'])
+    ->not->toBeUsed();
+
+test('actions are final')->expect('App\Actions')->toBeFinal();
+
+// ExportThingsAction streams its response, so it cannot be queued. PROJ-835.
+test('actions use QueueableAction trait')
+    ->expect('App\Actions')
+    ->toUseTrait(QueueableAction::class)
+    ->ignoring(ExportThingsAction::class);
 ```
+
+Every `->ignoring()` carries a comment with the reason and the ticket. When an arch test fails it
+is telling you about a local rule — read it; never delete or weaken a test to make a change pass,
+and never remove one without asking.
+
+## Concurrency tests
+
+Races (two users allocating the same stock) can't be proven inside one transaction. Tests in
+`tests/Concurrency/` commit real fixtures, race real OS processes (e.g. two `php artisan` commands
+started together through a `Tests\Support\ConcurrentProcess` helper), assert exactly one wins and
+the loser gets a clear message, and clean up after themselves. Under `--parallel`, hand the child
+processes the **connected** worker database, not the configured base name.
 
 ## Running
 
+Use the repo's own targets — usually a Makefile that runs inside Docker — before bare `artisan`:
+
 ```bash
-php artisan test --compact --filter=UpdateProduct   # while iterating
-php artisan test --compact                          # before handing off
+make test-filter filter=CreateCategory   # while iterating (or: php artisan test --compact --filter=CreateCategory)
+make test-group group=orders.unit.actions
+make test                                # before handing off: full suite, --parallel
 ```
 
-Run the narrow filter first. Claiming a change works without running anything is the single most
-common failure in agent-written Laravel changes.
+Run the full suite with `--parallel` (a single process can run out of memory); `--profile` only works
+serially. Parallel runs create one database per worker — the repo's clean target drops leftovers.
+Run the narrow filter first, and never claim a change works without running anything.

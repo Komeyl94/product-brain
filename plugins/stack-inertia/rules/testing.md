@@ -13,6 +13,8 @@ Layout: `playwright.config.ts` at the repo root with `baseURL` pointing at the a
 `tests/e2e/` as `*.spec.ts`. The app must run against a **dedicated test database**, never the
 developer's: reset and seed it in `globalSetup` (e.g. `php artisan migrate:fresh --seed --env=e2e`),
 and let `webServer` start the app and Vite when they aren't already running.
+The app is stateful, so run with `workers: 1` and `fullyParallel: false` unless every spec
+creates fully isolated data.
 
 ```ts
 import { test, expect } from '@playwright/test';
@@ -35,9 +37,11 @@ test('admin archives a product', async ({ page }) => {
   don't depend on whatever happens to be in a shared database.
 - **Mock only what you don't own** — `page.route()` for third-party services (payments, maps);
   exercise your own backend for real, or the test proves nothing about the seam.
-- **Keep E2E for journeys** — sign-in, checkout, the flows a ticket's acceptance criteria describe.
-  Logic and edge cases belong in unit/component tests, which are faster and more precise.
-- **Debug with traces, not retries** — configure `trace: 'on-first-retry'` and read the trace
+- **Keep E2E a thin layer** — a handful of journey and smoke specs (sign-in, the flows a ticket's
+  acceptance criteria describe). The bulk of coverage is Pest feature tests, which are faster and
+  pin down the server side precisely.
+- **Debug with traces, not retries** — configure `trace: 'retain-on-failure'`,
+  `screenshot: 'only-on-failure'` and `forbidOnly: !!process.env.CI`, and read the trace
   (`npx playwright show-trace`) instead of raising timeouts until a flaky test passes.
 
 Inertia-specific:

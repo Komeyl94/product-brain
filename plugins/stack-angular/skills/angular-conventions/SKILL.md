@@ -1,6 +1,6 @@
 ---
 name: angular-conventions
-description: Angular conventions for components, signals, RxJS lifetime, templates, typed forms, HTTP, security, unit tests and Playwright end-to-end tests. Use when writing or reviewing TypeScript or HTML in an Angular workspace (a repo with angular.json or nx.json and @angular/core in package.json).
+description: Angular conventions for components, signals, RxJS lifetime, templates, typed forms, HTTP, security and Playwright end-to-end tests. Use when writing or reviewing TypeScript or HTML in an Angular workspace (a repo with angular.json or nx.json and @angular/core in package.json).
 ---
 
 # Angular conventions
@@ -32,7 +32,7 @@ modernising a file, say so and ask first.
 | `rules/forms.md` | Reactive or template-driven forms, validators, `value` vs `getRawValue()`. |
 | `rules/http.md` | `HttpClient`, interceptors, response typing, error handling. |
 | `rules/security.md` | Anything touching raw HTML, URLs, tokens, or `environment.*.ts`. |
-| `rules/testing.md` | `.spec.ts` files — including which guardrails stop applying there and which never do — and Playwright end-to-end tests. |
+| `rules/testing.md` | Playwright end-to-end tests, and which guardrails stop applying in `.spec.ts` files and which never do. |
 
 ## Defaults for genuinely new code
 
@@ -82,6 +82,6 @@ config, or `.guardrails.json` to get a write through.
 ## Verification
 
 Do not claim a change works without running the project's own commands. Read `package.json`
-scripts rather than assuming: several repos are Nx (`nx lint <project>`, `nx test <project>`),
+scripts rather than assuming: several repos are Nx (`nx lint <project>`, `nx e2e <project>-e2e`),
 others are plain `ng`. Commit with `git commit -m "type(scope): [KEY-123] description"` —
 the format the `git-workflow` plugin enforces.
