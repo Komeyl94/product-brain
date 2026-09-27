@@ -1,11 +1,48 @@
 {
   "name": "product-brain",
-  "owner": { "name": "Product Brain maintainers" },
+  "owner": {
+    "name": "Product Brain maintainers"
+  },
   "plugins": [
     {
       "name": "product-brain",
       "source": ".",
-      "description": "The brainify skill + pb CLI: create and maintain a Product Brain hub. Installing puts pb on PATH and makes 'set up product brain' available — no manual copy, no PATH editing."
+      "description": "The brainify skill + pb CLI: create and maintain a Product Brain hub. Installing puts pb on PATH and makes 'set up product brain' available \u2014 no manual copy, no PATH editing."
+    },
+    {
+      "name": "git-workflow",
+      "source": "./plugins/git-workflow",
+      "description": "Commit-message and merge-request rules in every session, a commit-message hook, a ticket-scope gate before MR/PR creation, and verify-ticket-scope / review-mr skills."
+    },
+    {
+      "name": "guardrails",
+      "source": "./plugins/guardrails",
+      "description": "Blocks Claude writes that violate shared engineering standards (secrets, debug output, unsafe PHP/TS/React patterns and more), for whichever stacks each repo actually contains. Runs as a hook \u2014 nothing is written to your repos."
+    },
+    {
+      "name": "stack-laravel",
+      "source": "./plugins/stack-laravel",
+      "description": "Laravel conventions: architecture, Eloquent, migrations, validation, queues and Playwright end-to-end tests."
+    },
+    {
+      "name": "stack-inertia",
+      "source": "./plugins/stack-inertia",
+      "description": "Inertia monolith conventions: the Laravel/React seam, typed props, Wayfinder routing, form handling and Playwright end-to-end tests."
+    },
+    {
+      "name": "stack-angular",
+      "source": "./plugins/stack-angular",
+      "description": "Angular conventions: signals, standalone components, change detection, RxJS lifetime, typed forms and Playwright end-to-end tests."
+    },
+    {
+      "name": "stack-symfony",
+      "source": "./plugins/stack-symfony",
+      "description": "Symfony conventions: dependency injection, controllers, Doctrine, the messenger component and Playwright end-to-end tests."
+    },
+    {
+      "name": "stack-flutter",
+      "source": "./plugins/stack-flutter",
+      "description": "Flutter conventions: widget composition, state management, async safety and integration_test end-to-end tests."
     }
   ]
 }

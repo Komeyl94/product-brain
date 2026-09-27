@@ -1,7 +1,7 @@
 ---
 name: brainify
-version: 0.3.0
-description: Set up, refresh, and maintain a Product Brain hub — a single, method-agnostic source of truth for product knowledge across one or more code repos. Use when the user says "set up product brain", "brainify", "create a hub", "audit our setup", "what's missing from our brain", "what should I do next", or wants to refresh/update the brain — e.g. "update me", "update the brain", "refresh the brain", "sync the graph", "rebuild the graph", "pull the latest" — in a Product Brain context.
+version: 0.4.0
+description: Set up, refresh, and maintain a Product Brain hub — a single, method-agnostic source of truth for product knowledge across one or more code repos. Use when the user says "set up product brain", "brainify", "create a hub", "audit our setup", "what's missing from our brain", "what should I do next", "upgrade the hub", or wants to refresh/update the brain — e.g. "update me", "update the brain", "refresh the brain", "sync the graph", "rebuild the graph", "pull the latest" — in a Product Brain context.
 ---
 
 # Skill: Brainify
@@ -120,6 +120,16 @@ if [ -f .claude/settings.json ] && grep -q "extraKnownMarketplaces" .claude/sett
 else
   echo "surfaces: ABSENT (plugin only reachable where it was installed by hand)"
 fi
+
+# Shared plugins: which Product Brain plugins does the hub enable?
+echo "plugins: $(grep -o '"[a-z-]*@product-brain"' .claude/settings.json 2>/dev/null | tr '\n' ' ')"
+
+# Cross-OS + connections (the "upgrade" layer)
+grep -q PYTHONUTF8 .claude/settings.json 2>/dev/null && echo "utf8: PRESENT" || echo "utf8: ABSENT"
+git -c core.excludesFile=/dev/null check-ignore -q .claude/settings.local.json && echo "local settings: IGNORED" || echo "local settings: NOT IGNORED"
+test -f .mcp.json && echo "mcp: PRESENT ($(python3 -c "import json;print(','.join(json.load(open('.mcp.json')).get('mcpServers',{})))"))" || echo "mcp: ABSENT"
+grep -q "product-brain:managed:start" README.md 2>/dev/null && echo "readme: MANAGED" || echo "readme: UNMANAGED"
+ls repos/*/sonar-project.properties >/dev/null 2>&1 && { test -f docs/runbooks/check-sonarqube-on-mr.md && echo "sonar runbook: PRESENT" || echo "sonar runbook: ABSENT"; } || echo "sonar: not used"
 ```
 
 ---
@@ -138,6 +148,11 @@ Render a compact table with ✅ / ⚠️ / ❌ and a one-line note each:
 | Graph | `graph/graph.json` built & fresh (<7d) | ✅/⚠️/❌ |
 | Tool | graphify installed | ✅/❌ |
 | Surfaces | `.claude/settings.json` declares the marketplace (loads in IDE/desktop/cloud, not just CLI) | ✅/➖ |
+| Shared plugins | `git-workflow`, `guardrails`, and a `stack-*` plugin per stack in `repos/` are enabled | ✅/⚠️/➖ |
+| Cross-OS | `PYTHONUTF8` in `.claude/settings.json`; `settings.local.json` ignored by the tracked `.gitignore` | ✅/❌ |
+| Connections | `.mcp.json` + `.claude/settings.local.example.json` (run `connect-tools`) | ✅/➖ |
+| README | managed block present (non-technical guide kept current by `pb sync`) | ✅/⚠️ |
+| Sonar runbook | `docs/runbooks/check-sonarqube-on-mr.md` when any app runs Sonar | ✅/➖ |
 
 Rules: ✅ present & healthy · ⚠️ present but thin/stale · ❌ missing (required) · ➖ absent (recommended only). Follow with a **Priority gaps** list ordered by the sequence below; treat missing required items first. One gap at a time.
 
@@ -200,6 +215,23 @@ safe to commit (no machine paths):
    the declared marketplace + plugin; then `/reload-plugins` activates it.
 2. **Pre-allows the safe, path-free commands** the team runs (`pb sync`, `pb status`, `graphify`,
    read-only `git`) so teammates aren't prompted for each one.
+3. **Enables the shared plugins** from the same marketplace: `git-workflow` (commit-message and MR
+   rules loaded every session, a commit-message hook, a ticket-scope gate before MR/PR creation) and
+   `guardrails` (blocks writes that break shared engineering standards). Then add a `stack-*`
+   plugin to `enabledPlugins` for each stack found in the hub's repos — check each `repos/<id>`:
+
+   | Found in a repo | Enable |
+   |---|---|
+   | `composer.json` requiring `laravel/framework` | `stack-laravel@product-brain` |
+   | `composer.json` requiring `inertiajs/inertia-laravel` | `stack-inertia@product-brain` (plus `stack-laravel`) |
+   | `composer.json` requiring `symfony/framework-bundle` | `stack-symfony@product-brain` |
+   | `package.json` depending on `@angular/core` | `stack-angular@product-brain` |
+   | `pubspec.yaml` depending on `flutter` | `stack-flutter@product-brain` |
+
+   Say which ones you enabled and why. If the team already has its own commit format or MR flow,
+   ask before enabling `git-workflow` (its commit hook steps aside automatically when a repo has its
+   own `commit-msg` hook or commitlint config). On an existing hub, the audit's *Shared plugins* row
+   is how you notice these are missing — offer to add them.
 
 Personal approvals still go in the untracked `.claude/settings.local.json`. Tell the user plainly:
 "I've set the hub up so Product Brain loads automatically for anyone who opens it — in the terminal,
@@ -338,6 +370,50 @@ Next: [highest-value next action]
 
 ---
 
+## Upgrade an existing hub
+
+When the audit shows ❌/⚠️/➖ in the *Shared plugins*, *Cross-OS*, *Connections*, *README* or *Sonar
+runbook* rows — or the user says "upgrade the hub" — offer this upgrade.
+
+**Ask how to deliver it, every time:** commit on the current branch, or work on a new `hub-upgrade`
+branch and open a merge request / pull request. Never commit to `main` directly (it is usually
+protected), and never merge the MR yourself.
+
+**Read first:** `brain.config.json`, `README.md`, `CLAUDE.md`, `.claude/settings.json`, `.gitignore`,
+the `docs/` folders, and each app's CI (`repos/<id>/.gitlab-ci.yml` or `.github/workflows/`) and
+`sonar-project.properties`. Use this hub's own repo ids, hosts and URLs everywhere; ask for any host
+you cannot find — never copy values from another hub.
+
+1. **Docs, `.gitignore`, README** — run `pb sync`. It creates `docs/<type>/.gitkeep` for every
+   registered doc type, adds `.claude/settings.local.json` to the tracked `.gitignore`, and refreshes
+   the README's managed block (the non-technical, cross-OS guide). If the README has no managed
+   markers, put the markers in above the team's own prose rather than rewriting it; keep domain
+   owners and other hand-written content as they are.
+2. **Windows UTF-8** — add `"env": { "PYTHONUTF8": "1" }` to `.claude/settings.json` as a minimal
+   insert (don't reformat the file). It covers graphify and older `pb` versions.
+3. **Shared plugins and read-only commands** — merge the missing `enabledPlugins` entries (see
+   Phase A) and the read-only `glab`/`gh` permissions from `hub-settings.template.json` into
+   `.claude/settings.json`, again without reformatting.
+4. **Connections** — run the `connect-tools` skill: commit `.mcp.json` and
+   `.claude/settings.local.example.json` (no secrets), then run its presence-only check for the
+   user on this machine.
+5. **Hub `CLAUDE.md`** — add the *What not to commit* rows and the *Connecting tools* section from
+   `hub-claude-md-snippet.md` if missing.
+6. **Sonar runbook** (only if an app runs Sonar; otherwise skip it and say so) — find the Sonar job
+   in each app's pipeline. CI files may `include:` shared templates; read those with
+   `glab api "projects/<url-encoded-project>/repository/files/<url-encoded-path>/raw?ref=HEAD"`.
+   Note the job name, stage, rules, and whether `sonar.qualitygate.wait=true`. Verify on a real open
+   MR: MR → `glab api projects/:id/merge_requests/<iid>/pipelines` → the pipeline's jobs → the Sonar
+   job → `glab ci trace <job-id>`; look for `QUALITY GATE STATUS` and the dashboard URL. Write
+   `docs/runbooks/check-sonarqube-on-mr.md` from `templates/runbooks/check-sonarqube-on-mr.md` with
+   the real values and that example.
+7. **Finish** — commit in logical chunks (one per step above). If delivering by MR: push the branch
+   and open the MR/PR (`glab mr create` / `gh pr create`). Report the link, what you verified,
+   anything skipped and why, and which placeholders the user still has to fill in
+   `.claude/settings.local.json` themselves.
+
+---
+
 ## "What should I do next?" (lightweight re-audit)
 
 | Condition | Suggestion |
@@ -349,6 +425,7 @@ Next: [highest-value next action]
 | No domains, has graph | "Map domains from the graph's communities (recommended)." |
 | Doc type registered but empty | "Seed the first doc for [type]." |
 | No workflows | "Add role workflows so each role has a lens." |
+| Cross-OS / Connections / README / Sonar runbook rows not ✅ | "Upgrade the hub — cross-OS README, UTF-8, tool connections (I'll ask whether to open an MR)." |
 | All green | "Keep it fresh: `pb sync` on a schedule; record decisions as they happen." |
 
 ---

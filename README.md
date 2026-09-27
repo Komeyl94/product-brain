@@ -67,7 +67,13 @@ product-brain/
     getting-started.md              ← no-jargon guide for everyone
     multi-repo-architecture.md      ← the full architecture proposal
   skills/
-    brainify/SKILL.md               ← the setup & maintenance skill
+    brainify/SKILL.md               ← the setup, maintenance & upgrade skill
+    connect-tools/SKILL.md          ← "set up my connections": MCP servers, tokens only as a fallback
+  plugins/                          ← shared plugins in the same marketplace (see below)
+    git-workflow/                   commit + MR rules, commit-message hook, MR scope gate, skills
+    guardrails/                     blocks writes that break shared engineering standards
+    stack-laravel/ stack-inertia/ stack-angular/ stack-symfony/ stack-flutter/
+  tests/                            engine + hook self-checks (node --test tests/*.mjs; python3 tests/test_*.py)
   bin/
     pb                              the hub CLI (on PATH automatically via the plugin)
     package-skill.sh                build the Cowork upload bundle on demand
@@ -81,6 +87,11 @@ product-brain/
     doc-types/                      meeting-note, decision (ADR)
     workflows/                      pm, backend, frontend, qa, onboarding
     hub-claude-md-snippet.md        for a hub's CLAUDE.md
+    hub-readme-template.md          the hub README (non-technical, Windows/macOS/Linux guide)
+    hub-settings.template.json      the hub's .claude/settings.json (plugins, UTF-8, read-only perms)
+    hub-mcp.template.json           the hub's .mcp.json (hosts only, no secrets)
+    hub-settings.local.example.json template for personal tokens (fallback only)
+    runbooks/                       check-sonarqube-on-mr
     app-repo-claude-md-snippet.md   optional: makes an app repo hub-aware
   examples/
     todo-app/                       ← a complete tiny hub (todo-api + todo-web)
@@ -198,7 +209,7 @@ from the plugin and report up to date) and "set up product brain" (the skill sho
 
 ### Versions & updates
 
-The framework version lives in `VERSION` (currently `0.3.0`) and is stamped into the skill's
+The framework version lives in `VERSION` (currently `0.4.0`) and is stamped into the skill's
 frontmatter. Check what you have — and whether your installed skill is current — with:
 
 ```bash
@@ -249,9 +260,16 @@ is to **declare the marketplace in your hub's `.claude/settings.json`** (committ
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "extraKnownMarketplaces": {
-    "product-brain": { "source": { "source": "github", "repo": "Whotan/product-brain" } }
+    "product-brain": {
+      "source": { "source": "github", "repo": "Whotan/product-brain" },
+      "autoUpdate": true
+    }
   },
-  "enabledPlugins": { "product-brain@product-brain": true }
+  "enabledPlugins": {
+    "product-brain@product-brain": true,
+    "git-workflow@product-brain": true,
+    "guardrails@product-brain": true
+  }
 }
 ```
 
@@ -279,6 +297,26 @@ travels with the repo into cloud sessions.
 
 ---
 
+## Shared rules, skills & stack plugins
+
+The marketplace ships more than `product-brain`. Every plugin below updates the same way — bump
+the version here, and every hub that enables it picks the change up on
+`/plugin marketplace update product-brain` (or automatically, with auto-update on). No one copies
+rules into their repos, and app repos stay untouched: rules load as session context, and
+enforcement runs as Claude hooks from the plugin's own folder.
+
+| Plugin | What it gives every session in the hub |
+|---|---|
+| `git-workflow` | **Rules** (commit-message format `type(scope): [TASK-ID] description`, branch naming, MR gates) loaded at session start. **Hooks:** rejects a malformed `git commit -m` (steps aside when a repo has its own `commit-msg` hook or commitlint), and blocks `glab mr create` / `gh pr create` until the ticket scope has been checked for the current HEAD. **Skills:** `verify-ticket-scope` (diff vs. the ticket's acceptance criteria — Jira, GitLab or GitHub issues), `review-mr` (pipeline, SonarQube, review-bot notes → triage). **Agent:** `sonar-preflight`. |
+| `guardrails` | A `PreToolUse` hook that blocks writes breaking shared standards — hardcoded secrets, debug output, unsafe PHP/TS/React/Laravel/Angular/Flutter patterns — only for the stacks each repo actually contains, and only in added code. `guardrail info / staged / range` on PATH for manual checks. |
+| `stack-laravel`, `stack-inertia`, `stack-symfony`, `stack-angular`, `stack-flutter` | A conventions skill per stack plus topic rules, read on demand when a change touches that stack — never loaded into every session. |
+
+`brainify` enables `git-workflow` and `guardrails` for new hubs and adds the `stack-*` plugins that
+match the repos it finds. On an existing hub, run "audit our setup" — the *Shared plugins* row shows
+what's missing — or add the lines to `enabledPlugins` in `.claude/settings.json` yourself.
+
+---
+
 ## What a hub is made of
 
 **The hub is your workspace.** Each app is declared in `brain.config.json` with a git `url`, and
@@ -302,6 +340,17 @@ the graph stays focused. Use `["."]` (the default for adopted repos) to graph th
 **Extensible docs** — register any doc types you like in `brain.config.json` (`specs`, `decisions`, `meeting-notes`, `research`, `runbooks`, or your own). Markdown is preferred, and graphify connects it automatically.
 
 **Role workflows** — each role gets a lens over the one source: PM, backend, frontend, QA, onboarding.
+
+**Made for non-technical teammates, on any OS.** `pb sync` keeps a managed block in the hub's
+README current: install steps for Windows, macOS and Linux, everyday prompts, where things go, and
+fixes for the usual problems (SSH keys, the Windows Python alias, long paths, UTF-8). It also creates
+`docs/<type>/.gitkeep` for every doc type and keeps `.claude/settings.local.json` out of Git.
+
+**Tool connections, tokens only as a fallback.** Say "set up my connections" and the `connect-tools`
+skill writes a shared `.mcp.json` (GitLab via `glab mcp serve`, Jira via `mcp-atlassian`, hosts only)
+and checks this machine's sign-ins **without ever reading a token** — a token is added only when a
+normal login isn't possible, and a user's own same-named MCP server wins over the project's. An
+existing hub gets all of this with "upgrade the hub" (brainify asks whether to open an MR).
 
 ---
 

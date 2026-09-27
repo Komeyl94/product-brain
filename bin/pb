@@ -74,6 +74,15 @@ PROVIDER_ENV = {
 }
 ALL_PROVIDER_KEYS = {k for keys in PROVIDER_ENV.values() for k in keys}
 
+# One-line "what belongs here" for the common doc types (README + docs/<type>/.gitkeep).
+DOC_TYPE_HINTS = {
+    "specs": "What a feature should do and why",
+    "decisions": "One record per decision: what, why, and what was rejected",
+    "meeting-notes": "Notes or recordings, named `YYYY-MM-DD-topic.md`",
+    "research": "Research, analysis, PDFs and briefs",
+    "runbooks": "Step-by-step operational how-tos",
+}
+
 
 def log(msg): print(f"[pb] {msg}")
 def die(msg): print(f"[pb] ERROR: {msg}", file=sys.stderr); sys.exit(1)
@@ -84,7 +93,7 @@ def load_config(hub: Path) -> dict:
     if not cfg.exists():
         die(f"no brain.config.json in {hub} — is this a hub? (run brainify to create one)")
     try:
-        return json.loads(cfg.read_text())
+        return json.loads(cfg.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         die(f"brain.config.json is not valid JSON: {e}")
 
@@ -211,21 +220,21 @@ def ensure_exclusions(hub: Path, rdir: Path, out: Path, repos: list, dry: bool):
     git_dir = hub / ".git"
     if git_dir.exists():
         excl = git_dir / "info" / "exclude"
-        existing = excl.read_text().splitlines() if excl.exists() else []
+        existing = excl.read_text(encoding="utf-8").splitlines() if excl.exists() else []
         wanted = [f"/{repos_name}/", f"/{out_name}/", "/graphify-out/"]
         add = [w for w in wanted if w not in existing]
         if add:
             log(f"git: excluding {', '.join(w.strip('/') for w in add)} from commits (.git/info/exclude)")
             if not dry:
                 excl.parent.mkdir(parents=True, exist_ok=True)
-                excl.write_text("\n".join(existing + add).rstrip("\n") + "\n")
+                excl.write_text("\n".join(existing + add).rstrip("\n") + "\n", encoding="utf-8")
 
     # 2) .gitignore: graphify's internal AST cache and temporary work dirs.
     #    repos/ is intentionally NOT listed here — it stays in .git/info/exclude so graphify
     #    can still read the clones. graphify-out/ IS safe here: it is graphify's own output.
     gitignore = hub / ".gitignore"
     gi_marker = "graphify-out/cache/"
-    existing_gi = gitignore.read_text() if gitignore.exists() else ""
+    existing_gi = gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""
     if gi_marker not in existing_gi:
         block = (
             "\n# graphify-out/ — graphify AST parse cache (regenerable, can reach 200 MB+)\n"
@@ -238,8 +247,17 @@ def ensure_exclusions(hub: Path, rdir: Path, out: Path, repos: list, dry: bool):
         )
         log("git: writing graphify-out/ cache and .work/ exclusions to .gitignore")
         if not dry:
-            with open(gitignore, "a") as f:
+            with open(gitignore, "a", encoding="utf-8") as f:
                 f.write(block)
+
+    # 2b) .gitignore: personal Claude settings hold tokens — a personal global gitignore
+    #     doesn't protect teammates, so the hub's tracked .gitignore must cover it.
+    local_settings = ".claude/settings.local.json"
+    if local_settings not in (gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""):
+        log(f"git: ignoring {local_settings} in .gitignore (personal tokens, never committed)")
+        if not dry:
+            with open(gitignore, "a", encoding="utf-8") as f:
+                f.write(f"\n# Personal Claude settings and tokens — never commit\n{local_settings}\n")
 
     # 3) graphify: skip the generated output; keep the repos in; focus each repo on its "src".
     gfi = hub / ".graphifyignore"
@@ -264,10 +282,29 @@ def ensure_exclusions(hub: Path, rdir: Path, out: Path, repos: list, dry: bool):
             wanted_lines.append(f"# {rid}: graph only {', '.join(sorted(keep))}")
             wanted_lines += [f"{repos_name}/{rid}/{name}" for name in extras]
 
-    if not gfi.exists() or gfi.read_text().splitlines() != wanted_lines:
+    if not gfi.exists() or gfi.read_text(encoding="utf-8").splitlines() != wanted_lines:
         log(f"graphify: writing .graphifyignore (skip {out_name}/, focus repos on their src)")
         if not dry:
-            gfi.write_text("\n".join(wanted_lines) + "\n")
+            gfi.write_text("\n".join(wanted_lines) + "\n", encoding="utf-8")
+
+
+def ensure_doc_folders(hub: Path, cfg: dict, dry: bool):
+    """Every registered doc type gets docs/<type>/ with a .gitkeep, so the folder exists in
+    every clone even before its first document."""
+    for dtype in cfg.get("doc_types", []):
+        keep = hub / "docs" / dtype / ".gitkeep"
+        if keep.exists():
+            continue
+        log(f"docs: creating docs/{dtype}/.gitkeep")
+        if not dry:
+            keep.parent.mkdir(parents=True, exist_ok=True)
+            keep.write_text("", encoding="utf-8")
+
+
+def hub_remote(hub: Path) -> str:
+    out = subprocess.run(["git", "-C", str(hub), "remote", "get-url", "origin"],
+                         capture_output=True, text=True)
+    return out.stdout.strip() if out.returncode == 0 else ""
 
 
 def any_llm_key() -> bool:
@@ -335,7 +372,7 @@ def graph_stats(out: Path) -> str:
     if not gj.exists():
         return "graph.json not found (did graphify run?)"
     try:
-        data = json.loads(gj.read_text())
+        data = json.loads(gj.read_text(encoding="utf-8"))
         nodes = len(data.get("nodes", []))
         edges = len(data.get("links", data.get("edges", [])))
         return f"{nodes} nodes, {edges} edges"
@@ -358,12 +395,13 @@ def write_report(hub: Path, cfg: dict, out: Path, dry: bool, code_only: bool = F
         f"**Repos:** {repos or '(none)'}\n\n"
         f"**Graph:** {graph_stats(out)}\n\n"
         f"{coverage}"
-        f"_Run `pb sync` again after meaningful code or doc changes._\n"
+        f"_Run `pb sync` again after meaningful code or doc changes._\n",
+        encoding="utf-8",
     )
     log(f"wrote {report.relative_to(hub)}")
 
 
-def render_readme(cfg: dict, graph_name: str) -> str:
+def render_readme(cfg: dict, graph_name: str, hub: Path = None) -> str:
     """Interpolate the framework's hub-readme template with this hub's config.
     Byte-stable for unchanged config: repos are sorted, no timestamps."""
     tmpl_path = framework_root() / "templates" / "hub-readme-template.md"
@@ -380,11 +418,18 @@ def render_readme(cfg: dict, graph_name: str) -> str:
         repos_table = "\n".join(rows)
     else:
         repos_table = "_No repos registered yet — add them to `brain.config.json`, then `pb sync`._"
-    doc_types = ", ".join(f"`{d}`" for d in cfg.get("doc_types", [])) or "_none registered yet_"
-    return (tmpl_path.read_text()
+    doc_rows = "\n".join(f"| `docs/{d}/` | {DOC_TYPE_HINTS.get(d, 'Team knowledge')} |"
+                         for d in cfg.get("doc_types", [])) or "| `docs/<type>/` | _No doc types registered yet_ |"
+    url = hub_remote(hub) if hub else ""
+    host = url.split("@")[-1].split("//")[-1].split(":")[0].split("/")[0] if url else "your code host"
+    name = url.rstrip("/").removesuffix(".git").rsplit("/", 1)[-1].rsplit(":", 1)[-1] if url else cfg.get("hub_name", "hub")
+    return (tmpl_path.read_text(encoding="utf-8")
+            .replace("{{HUB_URL}}", url or "<this-hub-url>")
+            .replace("{{CODE_HOST}}", host)
+            .replace("{{HUB_DIR}}", name)
+            .replace("{{DOC_TYPE_ROWS}}", doc_rows)
             .replace("{{HUB_NAME}}", cfg.get("hub_name", "Product Brain hub"))
             .replace("{{REPOS_TABLE}}", repos_table)
-            .replace("{{DOC_TYPES}}", doc_types)
             .replace("{{GRAPH}}", graph_name)
             .replace("{{VERSION}}", read_version()))
 
@@ -402,12 +447,12 @@ def write_readme(hub: Path, cfg: dict, out: Path, dry: bool):
     - README with our managed markers → refresh only that block, leave the rest.
     - Hand-written README without markers → leave untouched (just hint how to opt in)."""
     graph_name = out.relative_to(hub).as_posix().rstrip("/") + "/graph.json"
-    rendered = render_readme(cfg, graph_name)
+    rendered = render_readme(cfg, graph_name, hub)
     if not rendered:
         return  # framework template not found (e.g. pb copied out of the repo)
     block = _managed_block(rendered)
     readme = hub / "README.md"
-    existing = readme.read_text() if readme.exists() else None
+    existing = readme.read_text(encoding="utf-8") if readme.exists() else None
 
     if existing is None or any(sign in existing for sign in HOST_README_SIGNS):
         new, why = rendered, ("created README.md" if existing is None
@@ -426,7 +471,7 @@ def write_readme(hub: Path, cfg: dict, out: Path, dry: bool):
     if dry:
         log(f"would update README.md ({why.split(' ',1)[0]})")
         return
-    readme.write_text(new)
+    readme.write_text(new, encoding="utf-8")
     log(why)
 
 
@@ -454,6 +499,7 @@ def cmd_sync(hub: Path, dry: bool, rebuild: bool, hub_pull: bool, repo_pull: boo
     log(f"apps folder: {rdir.name}/ — full working clones; develop in them directly inside the hub")
     pull_repos(rdir, repos, dry, repo_pull)
     ensure_exclusions(hub, rdir, out, repos, dry)
+    ensure_doc_folders(hub, cfg, dry)
     run_graphify(hub, out, dry, rebuild, provider)
     write_report(hub, cfg, out, dry, code_only)
     if readme:
@@ -513,7 +559,7 @@ def cmd_adopt(hub: Path, path: str, rid: str, do_copy: bool, force: bool):
     ids = [r.get("id") for r in cfg.get("repos", [])]
     if rid not in ids:
         cfg.setdefault("repos", []).append({"id": rid, "url": origin_url, "src": ["."]})
-        (hub / "brain.config.json").write_text(json.dumps(cfg, indent=2) + "\n")
+        (hub / "brain.config.json").write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
         log(f"registered '{rid}' in brain.config.json — set its \"src\" dirs (e.g. [\"app/\"]) if needed")
     elif origin_url:
         cfgd = next(r for r in cfg["repos"] if r.get("id") == rid)
@@ -532,14 +578,14 @@ def framework_root() -> Path:
 
 def read_version() -> str:
     vf = framework_root() / "VERSION"
-    return vf.read_text().strip() if vf.exists() else "unknown"
+    return vf.read_text(encoding="utf-8").strip() if vf.exists() else "unknown"
 
 
 def _skill_version(skill_dir: Path):
     f = skill_dir / "SKILL.md"
     if not f.exists():
         return None
-    for line in f.read_text().splitlines():
+    for line in f.read_text(encoding="utf-8").splitlines():
         if line.strip().lower().startswith("version:"):
             return line.split(":", 1)[1].strip()
     return "unversioned"
@@ -618,7 +664,7 @@ def cmd_find(hub: Path, terms: list, code_only: bool, limit: int, repo: str):
         if repo not in known:
             die(f"unknown repo '{repo}'. Known: {', '.join(known) or '(none)'}")
     try:
-        data = json.loads(gj.read_text())
+        data = json.loads(gj.read_text(encoding="utf-8"))
     except Exception as e:
         die(f"couldn't read {gj}: {e}")
     q = [t.lower() for t in terms]
@@ -675,6 +721,8 @@ def cmd_status(hub: Path):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):  # Windows consoles default to a legacy code page
+        stream.reconfigure(encoding="utf-8", errors="replace")
     p = argparse.ArgumentParser(prog="pb", description="Product Brain hub CLI")
     p.add_argument("--hub", default=".", help="path to the hub repo (default: current dir)")
     sub = p.add_subparsers(dest="cmd", required=True)
