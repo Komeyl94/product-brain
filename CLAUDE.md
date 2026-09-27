@@ -19,9 +19,10 @@ separate hub repo created by running `brainify`.
 
 | Purpose | Path |
 |---|---|
-| Setup/maintenance skill | `skills/brainify/SKILL.md` |
+| Setup/maintenance/upgrade skill | `skills/brainify/SKILL.md` |
+| Tool-connections skill | `skills/connect-tools/SKILL.md` |
 | Shared plugins (rules, hooks, skills, stack conventions) | `plugins/<name>/`, listed in `.claude-plugin/marketplace.json` |
-| Self-checks | `node --test tests/*.mjs`, `python3 tests/test_git_gate.py` |
+| Self-checks | `node --test tests/*.mjs`, `python3 tests/test_git_gate.py`, `python3 tests/test_pb_hub_files.py` |
 | Plugin + marketplace manifests (primary install path) | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` |
 | Hub CLI + tooling | `bin/pb`, `bin/package-skill.sh` (Cowork bundle), `bin/install-skill.sh` (fallback) |
 | Hub templates | `templates/` |
@@ -56,7 +57,11 @@ remove + re-add it (a plain `update` hits a name mismatch), so avoid renames.
 ## What a hub looks like (what the templates build)
 
 Required core: `constitution.md`, `vocabulary.md`. Recommended (graph-assisted): `domains.md`.
-Plus: `brain.config.json` (repos + doc types), `docs/<type>/` (extensible), `workflows/<role>.md`, `graph/` (built by `pb sync`).
+Plus: `brain.config.json` (repos + doc types), `docs/<type>/` (extensible), `workflows/<role>.md`, `graph/` (built by `pb sync`),
+`.claude/settings.json` (plugins, `PYTHONUTF8`, read-only permissions), and optionally `.mcp.json` +
+`.claude/settings.local.example.json` (from the `connect-tools` skill). Tokens live only in the
+git-ignored `.claude/settings.local.json` and are a fallback — never put a token or a `${TOKEN}`
+placeholder in a committed file, and never have a skill read or print a token value.
 
 ## The graph
 

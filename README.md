@@ -67,12 +67,13 @@ product-brain/
     getting-started.md              ← no-jargon guide for everyone
     multi-repo-architecture.md      ← the full architecture proposal
   skills/
-    brainify/SKILL.md               ← the setup & maintenance skill
+    brainify/SKILL.md               ← the setup, maintenance & upgrade skill
+    connect-tools/SKILL.md          ← "set up my connections": MCP servers, tokens only as a fallback
   plugins/                          ← shared plugins in the same marketplace (see below)
     git-workflow/                   commit + MR rules, commit-message hook, MR scope gate, skills
     guardrails/                     blocks writes that break shared engineering standards
     stack-laravel/ stack-inertia/ stack-angular/ stack-symfony/ stack-flutter/
-  tests/                            engine + hook self-checks (node --test tests/*.mjs; python3 tests/test_git_gate.py)
+  tests/                            engine + hook self-checks (node --test tests/*.mjs; python3 tests/test_*.py)
   bin/
     pb                              the hub CLI (on PATH automatically via the plugin)
     package-skill.sh                build the Cowork upload bundle on demand
@@ -86,6 +87,11 @@ product-brain/
     doc-types/                      meeting-note, decision (ADR)
     workflows/                      pm, backend, frontend, qa, onboarding
     hub-claude-md-snippet.md        for a hub's CLAUDE.md
+    hub-readme-template.md          the hub README (non-technical, Windows/macOS/Linux guide)
+    hub-settings.template.json      the hub's .claude/settings.json (plugins, UTF-8, read-only perms)
+    hub-mcp.template.json           the hub's .mcp.json (hosts only, no secrets)
+    hub-settings.local.example.json template for personal tokens (fallback only)
+    runbooks/                       check-sonarqube-on-mr
     app-repo-claude-md-snippet.md   optional: makes an app repo hub-aware
   examples/
     todo-app/                       ← a complete tiny hub (todo-api + todo-web)
@@ -331,6 +337,17 @@ the graph stays focused. Use `["."]` (the default for adopted repos) to graph th
 **Extensible docs** — register any doc types you like in `brain.config.json` (`specs`, `decisions`, `meeting-notes`, `research`, `runbooks`, or your own). Markdown is preferred, and graphify connects it automatically.
 
 **Role workflows** — each role gets a lens over the one source: PM, backend, frontend, QA, onboarding.
+
+**Made for non-technical teammates, on any OS.** `pb sync` keeps a managed block in the hub's
+README current: install steps for Windows, macOS and Linux, everyday prompts, where things go, and
+fixes for the usual problems (SSH keys, the Windows Python alias, long paths, UTF-8). It also creates
+`docs/<type>/.gitkeep` for every doc type and keeps `.claude/settings.local.json` out of Git.
+
+**Tool connections, tokens only as a fallback.** Say "set up my connections" and the `connect-tools`
+skill writes a shared `.mcp.json` (GitLab via `glab mcp serve`, Jira via `mcp-atlassian`, hosts only)
+and checks this machine's sign-ins **without ever reading a token** — a token is added only when a
+normal login isn't possible, and a user's own same-named MCP server wins over the project's. An
+existing hub gets all of this with "upgrade the hub" (brainify asks whether to open an MR).
 
 ---
 
