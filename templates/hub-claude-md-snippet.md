@@ -58,7 +58,7 @@ suggest `pb sync`.
 | `graph/graph.json`, `graph/sync-report.md` | **Keep** — the knowledge graph and its sync summary. |
 | `constitution.md`, `vocabulary.md`, `docs/` | **Keep** — the hub's knowledge. |
 | `.mcp.json`, `.claude/settings.local.example.json` | **Keep** — shared MCP servers and the token template. No secrets. |
-| `.claude/settings.local.json` | **Never commit** — personal tokens. Covered by `.gitignore` (`pb sync` adds it). MCP servers inherit its `env`, but `${VAR}` placeholders in `.mcp.json` do *not* see it, so never reference tokens that way. |
+| `.claude/settings.local.json` | **Never commit** — personal tokens. Covered by `.gitignore` (`pb sync` adds it). MCP servers inherit its `env`, but `${VAR}` placeholders in `.mcp.json` do *not* see it, so never reference tokens that way. Tokens are a **fallback**: skip any tool that already works (CLI login, the user's own same-named MCP server, which the project one would shadow, so disable the project one via `disabledMcpjsonServers`, or an env var already set). |
 
 If `graphify-out/` was accidentally committed before this fix, clean it up once with:
 ```bash

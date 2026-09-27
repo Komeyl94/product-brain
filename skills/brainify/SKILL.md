@@ -334,6 +334,8 @@ set it up so **no secret is ever committed**. These facts are verified, so desig
 - `${VAR}` expansion in `.mcp.json` reads only the real process environment. It does **not** see the
   `env` of `.claude/settings.local.json`, and `claude mcp list` reports "Missing environment variables".
 - Spawned MCP server processes **do** inherit that `env`, merged with the server's own `env` block.
+- A project `.mcp.json` server **shadows** a same-named server in the user's own config
+  (`~/.claude.json`). Putting its name in `disabledMcpjsonServers` hands control back to the user's server.
 
 So:
 
@@ -343,17 +345,32 @@ So:
 2. Copy `settings-local.example.template.json` to `.claude/settings.local.example.json` (committed),
    trimmed to the servers you configured. Each teammate copies it to `.claude/settings.local.json` and
    fills in their own tokens. `pb sync` gitignores that file; confirm it with `git check-ignore -v`.
-3. Warn that a token env var (e.g. `GITLAB_TOKEN`) **overrides** an existing `glab auth login`. A
-   stale one gives 401, so users who already signed in should delete that line.
-4. Never read, print or copy tokens out of other config files. Tell the user which values to fill in.
-   Tell them to type tokens into the file themselves, not paste them into the chat.
+3. **Tokens are a fallback.** Many users already have these tools configured: signed in with
+   `glab`/`gh auth login`, their own MCP server in `~/.claude.json`, or env vars set some other way.
+   For each teammate ("set up my connections"), check **presence only** and add a token only for
+   what's missing:
+   - CLI login: `env -u GITLAB_TOKEN glab auth status --hostname <host>` (or `gh auth status`). If it
+     succeeds, add **no** token env var, because it would override that login (a stale one gives 401).
+   - Same-named MCP server in the user's config: list the names only with
+     `python3 -c "import json,os;print(list(json.load(open(os.path.expanduser('~/.claude.json'))).get('mcpServers',{})))"`.
+     If there's a match, put that name in `disabledMcpjsonServers` and add no token.
+   - Env var already set in the environment: skip it.
+   Merge into `.claude/settings.local.json`, never overwriting existing values, and verify with
+   `claude mcp list`.
+4. Never read, print or copy token values out of other config files. Tell the user which
+   placeholders to fill in. Tell them to type tokens into the file themselves, not paste them into
+   the chat.
 5. Pre-allow the read-only CLI commands in `.claude/settings.json` (e.g. `glab mr list/view`,
    `glab ci list/status/view/trace`). Verify with `claude mcp list`.
 6. **Checks that run only in CI** (SonarQube, linters, AI review): don't add a Docker-based MCP or a
    tool token. Find the job in the pipeline config, including shared `include:` templates, and confirm
    the verdict appears in its log (e.g. SonarQube with `sonar.qualitygate.wait=true` prints
    `QUALITY GATE STATUS: PASSED|FAILED`). Then write a `docs/runbooks/` entry: MR → pipeline →
-   job → `glab ci trace <job-id>` / `gh run view --log`.
+   job → `glab ci trace <job-id>` / `gh run view --log`. If the team wants details the log doesn't
+   have (e.g. the list of SonarQube issues), add a **separate, optional** tool token (e.g.
+   `SONAR_TOKEN` + `SONAR_HOST_URL`) to the local settings, and document the API call in the runbook
+   (e.g. `curl -sf -u "$SONAR_TOKEN:" "$SONAR_HOST_URL/api/issues/search?componentKeys=<key>&pullRequest=<n>&resolved=false"`).
+   It's only needed when the pipeline's access doesn't cover it.
 
 ---
 

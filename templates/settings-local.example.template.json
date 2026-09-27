@@ -1,8 +1,14 @@
 {
-  "//": "brainify writes this to a hub's .claude/settings.local.example.json (committed). Each teammate copies it to .claude/settings.local.json (gitignored by pb sync) and fills in their own tokens. Claude Code passes this env to Bash and to MCP server processes, so servers in .mcp.json read tokens from their environment. Do NOT reference tokens as ${VAR} in .mcp.json: that expansion does not see this file. If you signed in with `glab auth login` / `gh auth login`, delete the matching token line, because the env var overrides that login.",
+  "//": "brainify writes this to a hub's .claude/settings.local.example.json (committed). Each teammate copies it to .claude/settings.local.json (gitignored by pb sync). Tokens are a FALLBACK: keep only the lines for tools that don't already work. Delete GITLAB_TOKEN if `glab auth status` succeeds (the env var overrides that login). If you already have a same-named MCP server in your own Claude config, delete its token and move its name to disabledMcpjsonServers, because the project server would otherwise hide yours. SONAR_* is optional and separate: only for details the CI pipeline log doesn't show. Claude Code passes this env to Bash and to MCP server processes; ${VAR} in .mcp.json does NOT see it.",
   "env": {
     "GITLAB_TOKEN": "glpat-...  (GitLab > Preferences > Access tokens, scope: api)",
-    "JIRA_PERSONAL_TOKEN": "...  (Jira > Profile > Personal Access Tokens)"
+    "JIRA_PERSONAL_TOKEN": "...  (Jira > Profile > Personal Access Tokens)",
+    "SONAR_TOKEN": "squ_...  (optional: SonarQube > My Account > Security > Generate token)",
+    "SONAR_HOST_URL": "https://sonar.example.com"
   },
-  "enabledMcpjsonServers": ["gitlab", "jira"]
+  "enabledMcpjsonServers": [
+    "gitlab",
+    "jira"
+  ],
+  "disabledMcpjsonServers": []
 }
