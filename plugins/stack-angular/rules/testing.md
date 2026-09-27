@@ -87,9 +87,48 @@ expect(rows).toHaveLength(2);
 For Angular Material, use the component harnesses (`HarnessLoader` + `MatSelectHarness`) rather
 than reaching into Material's DOM, which changes between versions.
 
+## End-to-end tests: Playwright
+
+E2E tests use **Playwright** (`@playwright/test`). Protractor is removed from Angular, and new E2E
+work does not go in Cypress. If the repo already has a Cypress or Protractor suite, don't start a
+parallel one on your own — ask whether to migrate it; if the repo has no E2E yet, set up Playwright.
+
+Layout: a `playwright.config.ts` at the workspace root (or an `<app>-e2e` project in Nx) with
+`baseURL` and a `webServer` entry that starts the app (`ng serve` / `nx serve`), and specs in `e2e/`
+as `*.spec.ts`.
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('user filters the order list', async ({ page }) => {
+  await page.goto('/orders');
+  await page.getByLabel('Status').selectOption('shipped');
+  await expect(page.getByTestId('order-row')).toHaveCount(2);
+});
+```
+
+- **Locate by role, label or test id** — `getByRole('button', { name: 'Save' })`, `getByLabel`,
+  `getByTestId`. Never CSS classes or XPath: a class rename is a style change and must not break a test.
+- **Web-first assertions only** — `await expect(locator).toBeVisible()` / `toHaveText()` retry until
+  the UI settles. Never `page.waitForTimeout()` and never assert on a one-shot `isVisible()`.
+- **Every test stands alone** — no reliance on another test's data or order. Log in once in a setup
+  project and reuse `storageState`; don't click through the login form in every test.
+- **Own your data** — create what the test needs (seeding, factories, an API call in a fixture) and
+  don't depend on whatever happens to be in a shared database.
+- **Mock only what you don't own** — `page.route()` for third-party services (payments, maps);
+  exercise your own backend for real, or the test proves nothing about the seam.
+- **Keep E2E for journeys** — sign-in, checkout, the flows a ticket's acceptance criteria describe.
+  Logic and edge cases belong in unit/component tests, which are faster and more precise.
+- **Debug with traces, not retries** — configure `trace: 'on-first-retry'` and read the trace
+  (`npx playwright show-trace`) instead of raising timeouts until a flaky test passes.
+
+Run: `npx playwright test` (or `ng e2e` / `nx e2e <project>-e2e` when the repo wires it), a single
+file with `npx playwright test e2e/orders.spec.ts`, and `--ui` to debug. First run on a machine
+or in CI needs `npx playwright install --with-deps`.
+
 ## Running them
 
 Read `package.json` before running anything: Nx repos use `nx test <project>` (add
-`--watch=false`), others use `ng test`. Run the lint task too — several repos have ESLint rules
+`--watch=false`), others use `ng test`; E2E runs as above. Run the lint task too — several repos have ESLint rules
 that CI enforces and the hook does not. Do not report a change as working on the basis of a build
 alone.

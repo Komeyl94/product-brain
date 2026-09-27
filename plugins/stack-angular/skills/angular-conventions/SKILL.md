@@ -1,6 +1,6 @@
 ---
 name: angular-conventions
-description: Angular conventions for components, signals, RxJS lifetime, templates, typed forms, HTTP and security. Use when writing or reviewing TypeScript or HTML in an Angular workspace (a repo with angular.json or nx.json and @angular/core in package.json).
+description: Angular conventions for components, signals, RxJS lifetime, templates, typed forms, HTTP, security, unit tests and Playwright end-to-end tests. Use when writing or reviewing TypeScript or HTML in an Angular workspace (a repo with angular.json or nx.json and @angular/core in package.json).
 ---
 
 # Angular conventions
@@ -32,7 +32,7 @@ modernising a file, say so and ask first.
 | `rules/forms.md` | Reactive or template-driven forms, validators, `value` vs `getRawValue()`. |
 | `rules/http.md` | `HttpClient`, interceptors, response typing, error handling. |
 | `rules/security.md` | Anything touching raw HTML, URLs, tokens, or `environment.*.ts`. |
-| `rules/testing.md` | `.spec.ts` files — including which guardrails stop applying there and which never do. |
+| `rules/testing.md` | `.spec.ts` files — including which guardrails stop applying there and which never do — and Playwright end-to-end tests. |
 
 ## Defaults for genuinely new code
 

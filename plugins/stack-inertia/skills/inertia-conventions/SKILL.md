@@ -1,6 +1,6 @@
 ---
 name: inertia-conventions
-description: Inertia monolith conventions for the Laravel/React seam — page props and DTOs, generated TypeScript types, routing with Wayfinder or Ziggy, form submission and error handling, and authorization across the boundary. Use when writing or reviewing an Inertia page, a controller that calls Inertia::render, anything under resources/js/, or a form that posts to a Laravel route.
+description: Inertia monolith conventions for the Laravel/React seam — page props and DTOs, generated TypeScript types, routing with Wayfinder or Ziggy, form submission and error handling, authorization across the boundary, and Playwright end-to-end tests. Use when writing or reviewing an Inertia page, a controller that calls Inertia::render, anything under resources/js/, or a form that posts to a Laravel route.
 ---
 
 # Inertia Conventions
@@ -24,6 +24,7 @@ sibling page and follow it. Introducing the second convention costs more than us
 | Links, redirects, URL-driven filters and sorting, route generation | [`rules/routing.md`](../../rules/routing.md) |
 | Form state, submission, validation errors, uploads, modals | [`rules/forms.md`](../../rules/forms.md) |
 | Permission props, hiding vs. blocking, 403 handling | [`rules/authorization.md`](../../rules/authorization.md) |
+| End-to-end tests of pages and journeys (Playwright) | [`rules/testing.md`](../../rules/testing.md) |
 
 ## Already enforced mechanically
 

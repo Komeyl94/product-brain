@@ -27,12 +27,12 @@
     {
       "name": "stack-inertia",
       "source": "./plugins/stack-inertia",
-      "description": "Inertia monolith conventions: the Laravel/React seam, typed props, Wayfinder routing and form handling."
+      "description": "Inertia monolith conventions: the Laravel/React seam, typed props, Wayfinder routing, form handling and Playwright end-to-end tests."
     },
     {
       "name": "stack-angular",
       "source": "./plugins/stack-angular",
-      "description": "Angular conventions: signals, standalone components, change detection, RxJS lifetime and typed forms."
+      "description": "Angular conventions: signals, standalone components, change detection, RxJS lifetime, typed forms and Playwright end-to-end tests."
     },
     {
       "name": "stack-symfony",
