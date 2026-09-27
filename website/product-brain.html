@@ -311,6 +311,7 @@
   brain.config.json          settings: which apps to read, what doc types you keep
   constitution.md            your rules — the things that must always be true   [REQUIRED]
   vocabulary.md              your glossary — product words ↔ code words          [REQUIRED]
+  DESIGN.md                  your one brand design system — every artifact wears it [REQUIRED]
   domains.md                 the big areas of your product                       [recommended]
   docs/                      your knowledge, grouped by type
     specs/                     what you're building and why
@@ -318,16 +319,18 @@
     meeting-notes/             notes and recordings from meetings
     research/   runbooks/      ...add any type you want
   workflows/                 short "how I use this" guides, one per role
+  brand/                     your compiled brand (brand.css, tokens.json) — committed
   repos/                     the apps, cloned here as working copies you develop in
   graph/                     the map (built for you by refresh)</code></pre>
     <p style="font-size:14px;color:#64748b;margin-top:-4px">The <code>repos/</code> and <code>graph/</code> folders are created by refresh and kept out of the hub's Git automatically, so they never clutter your commits. Each app in <code>repos/</code> is a <strong>full working clone with its own Git remote</strong> — you develop there normally (commit and push to the app's own repo as usual), while the hub keeps your code, specs, rules, and the map all in one place.</p>
 
-    <h2>The two things you must have <span class="pill req">required</span></h2>
+    <h2>The three things you must have <span class="pill req">required</span></h2>
     <div class="grid2">
       <div class="card"><h3>📜 constitution.md</h3><p>Your non-negotiable rules — for example, "every user only ever sees their own data." If a change breaks one of these, it's wrong. Short and stable.</p></div>
       <div class="card"><h3>📖 vocabulary.md</h3><p>Your shared words. Each entry says what a term means, what else people call it, and what it's named in the code. This is the bridge that ends "wait, what do you mean by that?"</p></div>
+      <div class="card"><h3>🎨 DESIGN.md</h3><p>Your one brand — colours, type, shape — lifted from your frontend's design source, never invented. Every document Product Brain generates (roadmap, dashboard, release notes) is styled only from it, so nothing ever looks like it came from a different company.</p></div>
     </div>
-    <p>These two matter most because they hold knowledge that <strong>can't be guessed from the code</strong> — your intent and your language.</p>
+    <p>These matter most because they hold knowledge that <strong>can't be guessed from the code</strong> — your intent, your language, and your one visual identity.</p>
 
     <h2>Strongly suggested <span class="pill rec">recommended</span></h2>
     <p><strong>domains.md</strong> lists the major areas of your product (like "Scheduling" or "Billing") with an owner and status. It's "graph-assisted": after a refresh, the map already groups related things into clusters, so Claude can suggest the domains and you just tidy up the names. Less typing, same value.</p>
@@ -340,6 +343,7 @@
       <dt>brain.config.json</dt><dd>The only settings file. Lists your apps and the doc types you keep. Claude can edit it for you.</dd>
       <dt>constitution.md</dt><dd>Rules every change must respect.</dd>
       <dt>vocabulary.md</dt><dd>The glossary tying product words to code words.</dd>
+      <dt>DESIGN.md</dt><dd>Your one brand — every generated document is styled only from it.</dd>
       <dt>domains.md</dt><dd>The product's big areas, owners, and status.</dd>
       <dt>docs/&lt;type&gt;/</dt><dd>Your actual knowledge, grouped however you like.</dd>
       <dt>workflows/&lt;role&gt;.md</dt><dd>A short "how I use the hub" note per role.</dd>
@@ -388,6 +392,7 @@
       <li><strong>Ask anything</strong> — you (and everyone else) can now ask questions.</li>
     </ol>
     <p>You can also say <strong>"what should I do next?"</strong> any time, and the wizard suggests the single most useful next step.</p>
+    <p>Right after the glossary, the wizard sets up your brand: it lifts <code>DESIGN.md</code> from your frontend's design source, has you review and resolve any conflicts, then compiles it. From then on, three sibling skills — the delivery roadmap, release notes, and the product dashboard — generate documents styled only from that one brand.</p>
   </section>
 
   <!-- 06 SETUP -->
@@ -495,6 +500,7 @@ pb sync --dry-run    # preview without building</code></pre>
     <div class="card"><p>💬 <strong>"Add a rule: every list endpoint in the API must be paginated."</strong><br>Claude adds it to <code>constitution.md</code> under the API notes.</p></div>
     <div class="card"><p>💬 <strong>"Write a spec for password reset, using our spec template."</strong><br>Claude drafts <code>docs/specs/00X-password-reset.md</code> for you to review.</p></div>
     <div class="card"><p>💬 <strong>"Turn this meeting recording into a note and save it."</strong><br>Claude transcribes, summarizes the decisions, and files it under <code>docs/meeting-notes/</code>.</p></div>
+    <div class="card"><p>💬 <strong>"Our frontend's design system moved — refresh the brand."</strong><br>Claude re-extracts <code>DESIGN.md</code>, has you review the diff, rebuilds <code>brand/</code>, and re-inlines it into the roadmap, dashboard, and release notes.</p></div>
 
     <h2>Editing a template's shape</h2>
     <p>If you want to change what a template <em>looks like</em> — say your specs should always have a "Rollout plan" section — just say so:</p>
@@ -557,7 +563,7 @@ cd repos/backend-api          # ...and work here, normally</code></pre>
 
     <div class="card"><h3>🎨 Designer</h3>
       <p>Ground designs in how things actually work and what users said.</p>
-      <ul><li>"Summarize the research we have on onboarding."</li><li>"What does the current checkout flow do, step by step?"</li></ul></div>
+      <ul><li>"Summarize the research we have on onboarding."</li><li>"What does the current checkout flow do, step by step?"</li><li>"The design system changed — refresh <code>DESIGN.md</code> so generated docs stay on-brand."</li></ul></div>
 
     <div class="card"><h3>🌱 New hire</h3>
       <p>One guided path instead of a scavenger hunt.</p>
@@ -573,8 +579,9 @@ cd repos/backend-api          # ...and work here, normally</code></pre>
 
     <pre><code>todo-brain/
   brain.config.json          tracks todo-api + todo-web
-  constitution.md            per-user data · validate inputs · soft delete · tests before merge
+  constitution.md            brand design system · per-user data · validate inputs · soft delete · tests before merge
   vocabulary.md              Task · List · Due date   (product words ↔ code words)
+  DESIGN.md                  hand-authored brand: a green ramp, system fonts (no frontend source)
   domains.md                 Tasks · Lists
   docs/
     specs/001-create-task.md
