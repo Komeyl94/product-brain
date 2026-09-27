@@ -31,31 +31,24 @@ If auth fails, stop and ask the user to log in (`glab auth login` / `gh auth log
 for them.
 
 SonarQube is optional. It applies when the repo has `sonar-project.properties` (or a Sonar step in
-CI). Check credentials without printing the token:
+CI). Its verdict comes from the pipeline log (Step 3) and needs no token. A token only adds issue
+details (Step 3b). Check for one without printing it:
 
 ```bash
-[ -n "$SONAR_HOST_URL" ] && [ -n "$SONAR_TOKEN" ] && echo "sonar: configured" || echo "sonar: MISSING"
+[ -n "$SONAR_HOST_URL" ] && [ -n "$SONAR_TOKEN" ] && echo "sonar api: configured" || echo "sonar api: not configured"
 ```
 
-If the repo uses Sonar and the credentials are missing, do not skip silently. Tell the user:
-
-```text
-SonarQube needs a personal token before this review can include its findings.
-1. Open <SONAR_HOST_URL>/account/security and generate a "User Token". Copy it — Sonar shows it once.
-2. Add to <repo>/.claude/settings.local.json, inside "env" (keep existing keys):
-   { "env": { "SONAR_HOST_URL": "https://<your-sonar-host>", "SONAR_TOKEN": "<token>" } }
-3. Start a new session so the values load, then re-run review-mr.
-```
-
-Before ever writing a token to that file, confirm git ignores it:
+If it is not configured and the user wants issue details, point them to the `connect-tools` skill
+or tell them: generate a "User Token" at `<SONAR_HOST_URL>/account/security`, add `SONAR_HOST_URL` and
+`SONAR_TOKEN` to the `env` of `.claude/settings.local.json` **themselves** (keeping existing keys),
+and start a new session. Before anything touches that file, confirm git ignores it:
 
 ```bash
 git check-ignore -q .claude/settings.local.json && echo ignored || echo "NOT IGNORED"
 ```
 
-If `NOT IGNORED`, stop — do not write the token. Never write a token into `.env`, `.env.example`
-or any tracked file, and never echo its value. If the user declines, continue with Sonar reported
-as `SKIPPED`.
+If `NOT IGNORED`, stop. Never write a token into `.env`, `.env.example` or any tracked file, never
+echo its value, and never ask for it in the chat.
 
 ## Step 1: Confirm the pipeline is green
 
@@ -88,9 +81,32 @@ else:
 Use only the **newest** note per bot — earlier ones describe superseded commits. No bot note at all
 means "the bot has not reviewed this MR", which is not the same as a clean review.
 
-## Step 3: Fetch SonarQube issues and the quality gate
+## Step 3: Read SonarQube from the MR pipeline
 
-Skip when Sonar is not used or not configured (reported as `SKIPPED`).
+The pipeline is the source of truth and needs no token. If the hub has
+`docs/runbooks/check-sonarqube-on-mr.md`, follow it — it names this repo's Sonar job. Otherwise find
+the Sonar job in the MR's latest pipeline and read its log:
+
+```bash
+PIPELINE=$(glab api "projects/:id/merge_requests/$MR_IID/pipelines" | python3 -c 'import json,sys; print(json.load(sys.stdin)[0]["id"])')
+glab api "projects/:id/pipelines/$PIPELINE/jobs?per_page=100" \
+| python3 -c 'import json,sys
+for j in json.load(sys.stdin):
+    if "sonar" in j["name"].lower(): print(j["id"], j["name"], j["stage"], j["status"])'
+glab ci trace <job-id> | grep -iE "QUALITY GATE STATUS|ANALYSIS SUCCESSFUL|dashboard\?id=|api/ce/task"
+# GitHub: gh pr checks, then gh run view <run-id> --log | grep -iE "quality gate|dashboard"
+```
+
+`QUALITY GATE STATUS: PASSED` / `FAILED` is the verdict; the `dashboard?id=` line is the link to
+give the user. If the job doesn't wait for the gate (`sonar.qualitygate.wait` not `true`), the log
+only shows the analysis was submitted — say the verdict is on the dashboard, not that it passed.
+Never hardcode the job name; CI templates can rename it.
+
+## Step 3b (optional): SonarQube issue details from the API
+
+Only when `SONAR_TOKEN` and `SONAR_HOST_URL` are set **and** the server is reachable (it is often
+VPN-only — test with `curl -sf "$SONAR_HOST_URL/api/server/version"`). Otherwise the Step 3 verdict
+and dashboard link are the result; report issue details as `SKIPPED`, not clean.
 
 ```bash
 SONAR_PROJECT=$(grep '^sonar.projectKey=' sonar-project.properties | cut -d= -f2)
@@ -150,7 +166,8 @@ Human review threads are separate: address and resolve them with the team's usua
 ```text
 Internal review — MR !<iid>
   Pipeline:     <status>
-  Sonar gate:   <OK | ERROR (conditions) | SKIPPED: <reason> | not used>
+  Sonar gate:   <PASSED | FAILED (conditions) | submitted, see dashboard | not used>  (source: pipeline log | API)
+  Dashboard:    <url>
   Sonar issues: <n> (scope: pullRequest=<iid> | branch=<branch> | unavailable)
   Bot findings: <n> | none | bot has not reviewed this MR
 
@@ -163,7 +180,7 @@ State plainly when a source was skipped. A partial review is never reported as c
 
 ## Rules
 
-- Never report the MR as clean when Sonar was skipped or returned an unknown scope
+- Never report the MR as clean when neither the pipeline log nor the API gave a Sonar verdict
 - Never write a token into a tracked file, and never echo its value
 - Never act on a stale bot note; only the newest describes the current head
 - Never edit an upstream-owned file to satisfy a finding
