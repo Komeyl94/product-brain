@@ -1,6 +1,6 @@
 ---
 name: brainify
-version: 0.3.0
+version: 0.4.0
 description: Set up, refresh, and maintain a Product Brain hub — a single, method-agnostic source of truth for product knowledge across one or more code repos. Use when the user says "set up product brain", "brainify", "create a hub", "audit our setup", "what's missing from our brain", "what should I do next", or wants to refresh/update the brain — e.g. "update me", "update the brain", "refresh the brain", "sync the graph", "rebuild the graph", "pull the latest" — in a Product Brain context.
 ---
 
@@ -92,6 +92,25 @@ Run these checks in a single bash call. The hub root is the current directory.
 test -f constitution.md && echo "constitution: PRESENT ($(wc -l < constitution.md) lines)" || echo "constitution: MISSING"
 test -f vocabulary.md   && echo "vocabulary: PRESENT"  || echo "vocabulary: MISSING"
 
+# Required (brand — every generated artifact must style itself from this)
+test -f DESIGN.md && echo "DESIGN.md: PRESENT" || echo "DESIGN.md: MISSING"
+if [ -f brand/tokens.json ]; then
+  STALE=$(python3 - <<'PY' 2>/dev/null
+import json, hashlib, os
+try:
+    t = json.load(open("brand/tokens.json", encoding="utf-8"))
+    digest = t.get("design_sha256") or t.get("source_hash") or t.get("hash")
+    actual = hashlib.sha256(open("DESIGN.md", "rb").read()).hexdigest() if os.path.exists("DESIGN.md") else None
+    print("stale" if digest and actual and digest != actual else "fresh")
+except Exception:
+    print("unknown")
+PY
+)
+  echo "brand/tokens.json: PRESENT ($STALE vs DESIGN.md)"
+else
+  echo "brand/tokens.json: MISSING (run the brand-system skill: \`brand.py extract\` then \`brand.py build\`)"
+fi
+
 # Recommended
 test -f domains.md      && echo "domains: PRESENT ($(wc -l < domains.md) lines)" || echo "domains: ABSENT (recommended)"
 
@@ -132,6 +151,8 @@ Render a compact table with ✅ / ⚠️ / ❌ and a one-line note each:
 |---|---|---|
 | Required | `constitution.md` | ✅/⚠️/❌ |
 | Required | `vocabulary.md` | ✅/❌ |
+| Required | `DESIGN.md` (brand design system) | ✅/❌ |
+| Brand | `brand/tokens.json` built & fresh (hash matches `DESIGN.md`) | ✅/⚠️/❌ |
 | Recommended | `domains.md` (graph-assisted) | ✅/⚠️/➖ |
 | Config | `brain.config.json` | ✅/❌ |
 | Docs | registered doc types populated | ✅/⚠️/❌ |
@@ -151,6 +172,7 @@ B → Install graphify
 C → First pb sync — build the graph NOW (later steps query it)
 D → Write the constitution
 E → Build the vocabulary (graph-assisted — use `pb find`)
+E2 → Set up the brand design system (extract, review, build)
 F → Register doc types & seed docs
 G → Map domains (graph-assisted)
 H → Re-sync to fold the new docs into the graph
@@ -301,6 +323,29 @@ from the confirmed mappings (Markdown only — no manual links); iterate until a
 If the graph isn't built yet, build it first (Phase C). Falling back to manual guessing is a last
 resort, not the default.
 
+### Phase E2 — Brand design system
+
+Every artifact this hub can generate (roadmap, dashboard, release notes, and anything else styled
+as a document) must share one visual identity, so this step is required, not optional, right after
+the vocabulary is drafted.
+
+Invoke the `brand-system` skill (`product-brain:brand-system`):
+
+1. **Extract.** It runs `brand.py extract` against the frontend repo(s) registered in
+   `brain.config.json` → `design.source` / `design.sources` — never invented, never sampled from a
+   screenshot — and drafts the hub-root `DESIGN.md`: brand tokens (colour ramps, semantic colours,
+   type, shape, spacing) plus the `artifact` role mapping every generated document uses.
+2. **Review with the user.** Show the draft. If two apps disagree on a brand-level token, that
+   conflict goes to the user to decide — the extractor never picks a winner on its own.
+3. **Build.** Once approved, run `brand.py build` to compile `brand/brand.css` and
+   `brand/tokens.json`. From here on, every artifact skill inlines `brand.css` and styles itself
+   only from its `--ds-*` variables; `check-brand.py` (run in each artifact skill's verify step)
+   fails anything that strays from it.
+
+If the hub has no registered frontend repo to extract from, offer a hand-authored `DESIGN.md`
+instead (system font stacks, a small colour ramp, the same `artifact` block) — see
+`examples/todo-app/DESIGN.md` for a worked example with no frontend source.
+
 ### Phase F — Register doc types & seed docs
 
 Confirm the doc types in `brain.config.json`. Offer the shipped templates (`spec-template.md`, `doc-types/meeting-note-template.md`, `doc-types/decision-template.md`) but make clear teams can use any format. Knowledge the team authors goes in as Markdown under `docs/<type>/`; native artifacts (a recorded call, a PDF brief) can be dropped in as-is and graphify will ingest them.
@@ -328,7 +373,8 @@ Offer `workflows/<role>.md` for the roles the team has (pm, backend, frontend, q
 
 ```
 ✅ Product Brain hub — status
-Required core  ✅ constitution / vocabulary
+Required core  ✅ constitution / vocabulary / DESIGN.md
+Brand          ✅ brand/tokens.json built & fresh   [or ⚠️ stale, or ❌ missing]
 Domains        ✅ N domains (graph-assisted)   [or ➖ not mapped yet]
 Config         ✅ brain.config.json (N repos, M doc types)
 Graph          ✅ built (NNN nodes) — Xd old
@@ -344,6 +390,7 @@ Next: [highest-value next action]
 |---|---|
 | Config missing | "Create `brain.config.json` — declare your repos and doc types." |
 | constitution / vocabulary missing | "Write the missing required file — it's what makes this a brain." |
+| `DESIGN.md` missing, or `brand/tokens.json` missing/stale | "Run the brand-system skill to extract/build the brand from your frontend's design source." |
 | Graph missing | "Run `pb sync` to build the graph." |
 | Graph > 7 days | "Re-run `pb sync` — the code may have drifted." |
 | No domains, has graph | "Map domains from the graph's communities (recommended)." |
@@ -360,3 +407,21 @@ Next: [highest-value next action]
 - **CI-push freshness** and a **machine vocabulary index / linter** (a structured `vocabulary.json` would be (re)introduced only when such tooling needs it).
 
 If asked for these, explain they're tracked as open problems, not yet implemented.
+
+---
+
+## Artifact skills
+
+Four sibling skills produce the hub's generated documents. Each reads its own `brain.config.json`
+key and nothing else is hardcoded — a missing key is a clear error naming the key, never a silent
+default.
+
+| Skill | Produces | Reads |
+|---|---|---|
+| `brand-system` | The hub's `DESIGN.md`, plus compiled `brand/brand.css` + `brand/tokens.json` | `design` |
+| `delivery-roadmap` | A git-grounded delivery roadmap (HTML) and its facts JSON | `roadmap` |
+| `release-notes` | Per-release client + internal notes (HTML/PDF/Markdown) | `releases` |
+| `update-product-hub` | The product dashboard (HTML) and its state JSON | `dashboard` |
+
+Every one of them runs `check-brand.py` (from `brand-system`) in its verify step before it's
+considered done — see the "Brand design system" constitution principle.
