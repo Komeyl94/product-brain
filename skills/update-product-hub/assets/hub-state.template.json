@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "updated": null,
+  "_readme": "The recorded layer of the product hub dashboard. A person changes it through the page's Save button and commits it; the refresh embeds it verbatim and never edits it. focus.items rows are {id, status: open|done, closedAt: ISO time or null, closedNote} and nothing else - titles and evidence live in the page's FOCUS array, keyed by the same id. decisions are {id, subject, question, options: [{id, label, body}], choice: option id or null, decidedAt, note}; a decision's prose stays frozen once recorded. syncLog is a list of {at, kind} entries the page appends.",
+  "focus": {
+    "items": []
+  },
+  "decisions": [],
+  "syncLog": []
+}
