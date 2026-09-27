@@ -1,12 +1,19 @@
 {
-  "//": "brainify writes this to a new hub's .claude/settings.json. Two jobs: (1) make Product Brain available in every Claude surface that opens this hub — CLI, VS Code/JetBrains, desktop, and cloud/Cowork sessions — by declaring the marketplace + plugin, and (2) pre-allow the safe commands the team runs so teammates aren't prompted for each one. Path-free and safe to commit (no machine paths). Personal approvals still go in the untracked .claude/settings.local.json.",
+  "//": "brainify writes this to a new hub's .claude/settings.json. Two jobs: (1) make Product Brain available in every Claude surface that opens this hub — CLI, VS Code/JetBrains, desktop, and cloud/Cowork sessions — by declaring the marketplace + plugins (product-brain, plus the shared git-workflow and guardrails plugins; brainify adds the stack-* plugins that match the hub's repos), and (2) pre-allow the safe commands the team runs so teammates aren't prompted for each one. Path-free and safe to commit (no machine paths). Personal approvals still go in the untracked .claude/settings.local.json.",
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "extraKnownMarketplaces": {
     "product-brain": {
-      "source": { "source": "github", "repo": "Whotan/product-brain" }
+      "source": {
+        "source": "github",
+        "repo": "Whotan/product-brain"
+      }
     }
   },
-  "enabledPlugins": { "product-brain@product-brain": true },
+  "enabledPlugins": {
+    "product-brain@product-brain": true,
+    "git-workflow@product-brain": true,
+    "guardrails@product-brain": true
+  },
   "permissions": {
     "allow": [
       "Bash(pb sync:*)",
@@ -14,6 +21,7 @@
       "Bash(pb find:*)",
       "Bash(pb version:*)",
       "Bash(pb adopt:*)",
+      "Bash(guardrail:*)",
       "Bash(graphify:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",

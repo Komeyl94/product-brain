@@ -1,6 +1,6 @@
 ---
 name: brainify
-version: 0.3.0
+version: 0.4.0
 description: Set up, refresh, and maintain a Product Brain hub — a single, method-agnostic source of truth for product knowledge across one or more code repos. Use when the user says "set up product brain", "brainify", "create a hub", "audit our setup", "what's missing from our brain", "what should I do next", or wants to refresh/update the brain — e.g. "update me", "update the brain", "refresh the brain", "sync the graph", "rebuild the graph", "pull the latest" — in a Product Brain context.
 ---
 
@@ -120,6 +120,9 @@ if [ -f .claude/settings.json ] && grep -q "extraKnownMarketplaces" .claude/sett
 else
   echo "surfaces: ABSENT (plugin only reachable where it was installed by hand)"
 fi
+
+# Shared plugins: which Product Brain plugins does the hub enable?
+echo "plugins: $(grep -o '"[a-z-]*@product-brain"' .claude/settings.json 2>/dev/null | tr '\n' ' ')"
 ```
 
 ---
@@ -138,6 +141,7 @@ Render a compact table with ✅ / ⚠️ / ❌ and a one-line note each:
 | Graph | `graph/graph.json` built & fresh (<7d) | ✅/⚠️/❌ |
 | Tool | graphify installed | ✅/❌ |
 | Surfaces | `.claude/settings.json` declares the marketplace (loads in IDE/desktop/cloud, not just CLI) | ✅/➖ |
+| Shared plugins | `git-workflow`, `guardrails`, and a `stack-*` plugin per stack in `repos/` are enabled | ✅/⚠️/➖ |
 
 Rules: ✅ present & healthy · ⚠️ present but thin/stale · ❌ missing (required) · ➖ absent (recommended only). Follow with a **Priority gaps** list ordered by the sequence below; treat missing required items first. One gap at a time.
 
@@ -200,6 +204,23 @@ safe to commit (no machine paths):
    the declared marketplace + plugin; then `/reload-plugins` activates it.
 2. **Pre-allows the safe, path-free commands** the team runs (`pb sync`, `pb status`, `graphify`,
    read-only `git`) so teammates aren't prompted for each one.
+3. **Enables the shared plugins** from the same marketplace: `git-workflow` (commit-message and MR
+   rules loaded every session, a commit-message hook, a ticket-scope gate before MR/PR creation) and
+   `guardrails` (blocks writes that break shared engineering standards). Then add a `stack-*`
+   plugin to `enabledPlugins` for each stack found in the hub's repos — check each `repos/<id>`:
+
+   | Found in a repo | Enable |
+   |---|---|
+   | `composer.json` requiring `laravel/framework` | `stack-laravel@product-brain` |
+   | `composer.json` requiring `inertiajs/inertia-laravel` | `stack-inertia@product-brain` (plus `stack-laravel`) |
+   | `composer.json` requiring `symfony/framework-bundle` | `stack-symfony@product-brain` |
+   | `package.json` depending on `@angular/core` | `stack-angular@product-brain` |
+   | `pubspec.yaml` depending on `flutter` | `stack-flutter@product-brain` |
+
+   Say which ones you enabled and why. If the team already has its own commit format or MR flow,
+   ask before enabling `git-workflow` (its commit hook steps aside automatically when a repo has its
+   own `commit-msg` hook or commitlint config). On an existing hub, the audit's *Shared plugins* row
+   is how you notice these are missing — offer to add them.
 
 Personal approvals still go in the untracked `.claude/settings.local.json`. Tell the user plainly:
 "I've set the hub up so Product Brain loads automatically for anyone who opens it — in the terminal,

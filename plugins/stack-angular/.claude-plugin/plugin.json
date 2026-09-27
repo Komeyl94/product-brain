@@ -1,0 +1,8 @@
+{
+  "name": "stack-angular",
+  "version": "0.4.0",
+  "description": "Angular conventions: signals, standalone components, change detection, RxJS lifetime and typed forms.",
+  "author": {
+    "name": "Product Brain maintainers"
+  }
+}

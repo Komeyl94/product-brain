@@ -68,6 +68,11 @@ product-brain/
     multi-repo-architecture.md      ← the full architecture proposal
   skills/
     brainify/SKILL.md               ← the setup & maintenance skill
+  plugins/                          ← shared plugins in the same marketplace (see below)
+    git-workflow/                   commit + MR rules, commit-message hook, MR scope gate, skills
+    guardrails/                     blocks writes that break shared engineering standards
+    stack-laravel/ stack-inertia/ stack-angular/ stack-symfony/ stack-flutter/
+  tests/                            engine + hook self-checks (node --test tests/*.mjs; python3 tests/test_git_gate.py)
   bin/
     pb                              the hub CLI (on PATH automatically via the plugin)
     package-skill.sh                build the Cowork upload bundle on demand
@@ -198,7 +203,7 @@ from the plugin and report up to date) and "set up product brain" (the skill sho
 
 ### Versions & updates
 
-The framework version lives in `VERSION` (currently `0.3.0`) and is stamped into the skill's
+The framework version lives in `VERSION` (currently `0.4.0`) and is stamped into the skill's
 frontmatter. Check what you have — and whether your installed skill is current — with:
 
 ```bash
@@ -251,7 +256,11 @@ is to **declare the marketplace in your hub's `.claude/settings.json`** (committ
   "extraKnownMarketplaces": {
     "product-brain": { "source": { "source": "github", "repo": "Whotan/product-brain" } }
   },
-  "enabledPlugins": { "product-brain@product-brain": true }
+  "enabledPlugins": {
+    "product-brain@product-brain": true,
+    "git-workflow@product-brain": true,
+    "guardrails@product-brain": true
+  }
 }
 ```
 
@@ -276,6 +285,26 @@ travels with the repo into cloud sessions.
 > the account-level skill upload (`bin/package-skill.sh` → `dist/brainify.skill` → claude.ai →
 > Settings → Features). Treat the repo-declared marketplace as the documented-but-unconfirmed path for
 > Cowork, and confirm it in your own session before relying on it for a non-technical teammate.
+
+---
+
+## Shared rules, skills & stack plugins
+
+The marketplace ships more than `product-brain`. Every plugin below updates the same way — bump
+the version here, and every hub that enables it picks the change up on
+`/plugin marketplace update product-brain` (or automatically, with auto-update on). No one copies
+rules into their repos, and app repos stay untouched: rules load as session context, and
+enforcement runs as Claude hooks from the plugin's own folder.
+
+| Plugin | What it gives every session in the hub |
+|---|---|
+| `git-workflow` | **Rules** (commit-message format `type(scope): [TASK-ID] description`, branch naming, MR gates) loaded at session start. **Hooks:** rejects a malformed `git commit -m` (steps aside when a repo has its own `commit-msg` hook or commitlint), and blocks `glab mr create` / `gh pr create` until the ticket scope has been checked for the current HEAD. **Skills:** `verify-ticket-scope` (diff vs. the ticket's acceptance criteria — Jira, GitLab or GitHub issues), `review-mr` (pipeline, SonarQube, review-bot notes → triage). **Agent:** `sonar-preflight`. |
+| `guardrails` | A `PreToolUse` hook that blocks writes breaking shared standards — hardcoded secrets, debug output, unsafe PHP/TS/React/Laravel/Angular/Flutter patterns — only for the stacks each repo actually contains, and only in added code. `guardrail info / staged / range` on PATH for manual checks. |
+| `stack-laravel`, `stack-inertia`, `stack-symfony`, `stack-angular`, `stack-flutter` | A conventions skill per stack plus topic rules, read on demand when a change touches that stack — never loaded into every session. |
+
+`brainify` enables `git-workflow` and `guardrails` for new hubs and adds the `stack-*` plugins that
+match the repos it finds. On an existing hub, run "audit our setup" — the *Shared plugins* row shows
+what's missing — or add the lines to `enabledPlugins` in `.claude/settings.json` yourself.
 
 ---
 
