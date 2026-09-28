@@ -334,6 +334,8 @@ the graph stays focused. Use `["."]` (the default for adopted repos) to graph th
 
 - `constitution.md` — the non-negotiable principles.
 - `vocabulary.md` — the glossary tying product language to code.
+- `DESIGN.md` — the product's one design system: brand tokens (colour, type, shape) lifted from the
+  frontend's design source, compiled to `brand/` and used to style every artifact the hub generates.
 
 **Recommended:** `domains.md` — the functional areas, owners, status, and which repos implement them. It's graph-assisted: after a sync, the graph's communities are good candidate domains, so you curate rather than author from scratch.
 
@@ -353,6 +355,32 @@ skill writes a shared `.mcp.json` (GitLab via `glab mcp serve`, Jira via `mcp-at
 and checks this machine's sign-ins **without ever reading a token** — a token is added only when a
 normal login isn't possible, and a user's own same-named MCP server wins over the project's. An
 existing hub gets all of this with "upgrade the hub" (brainify asks whether to open an MR).
+
+---
+
+## Using the artifact skills
+
+Four sibling skills turn the hub's knowledge into generated documents, all styled from the one
+compiled brand (see `DESIGN.md` above):
+
+| Skill | Scope |
+|---|---|
+| `brand-system` | Extracts and compiles the product-level `DESIGN.md` into `brand/brand.css` + `brand/tokens.json`, and provides `check-brand.py`, the brand gate every other artifact skill runs before publishing. |
+| `delivery-roadmap` | The internal delivery roadmap: one card per feature, a computed timeline, and a conflicts panel — grounded in git, not task lists. It reads a release's headline back out of `release-notes`, but does not write release notes itself. |
+| `release-notes` | Owns release notes: a publishable client note (HTML + PDF, one locale) and a team-only internal note, per release tag. |
+| `update-product-hub` | The product dashboard: what to do today, what's at risk, what shipped yesterday — re-derived every run from git, the graph, and the other skills' output. |
+
+Invoke one directly as `/product-brain:<name>` (e.g. `/product-brain:release-notes`), or just ask
+naturally — "refresh the roadmap", "write release notes for this tag", "what's at risk today" —
+and the matching skill triggers on its own description. Full config reference (every
+`brain.config.json` key each skill reads, required vs optional, with defaults):
+[`docs/artifact-skills.md`](docs/artifact-skills.md).
+
+**A hub-local copy shadows the plugin's.** If a hub still has `.claude/skills/<name>/` for one of
+these four (from before the plugin shipped them, or from local development), Claude Code resolves
+that copy instead of the plugin's — silently, even after the plugin updates. Once the plugin
+version is installed, delete the hub-local copy (`rm -rf .claude/skills/<name>`) so there is only
+one version to drift.
 
 ---
 

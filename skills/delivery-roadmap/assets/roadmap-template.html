@@ -1,0 +1,1676 @@
+<meta charset="utf-8">
+<title>Delivery Roadmap</title>
+<meta name="description" content="Delivery roadmap template. Every position, width, tick and count on this page is computed in JS from a single DATA object, and every colour and font comes from the inlined brand block — replace DATA, regenerate nothing else.">
+
+<style>
+  /* ============================================================
+     BRAND — the product design system, compiled by the brand-system
+     skill. Do not edit between the markers; refresh with
+     `brand.py inline <this file>`. Everything after the block uses
+     only var(--ds-*) roles and color-mix() tints of them, so light,
+     dark and print all follow the brand.
+     ============================================================ */
+/* BRAND:BEGIN */
+/* BRAND:END */
+
+  /* ============================================================
+     ROLE MAP — how roadmap meaning maps onto brand roles. --ds-accent
+     is deliberately unused: a brand's accent may equal its danger.
+       shipped  → --ds-success      in flight → --ds-warning
+       planned  → --ds-info         backlog   → --ds-muted
+       blocked  → --ds-danger       cooldown  → --ds-muted (dashed)
+       ready    → --ds-primary      today     → --ds-danger
+       overlap / superseded → --ds-primary-strong
+     Elevation is brand-owned: var(--ds-shadow-sm|md), which a brand
+     that forbids shadows leaves at `none`. Weights are
+     var(--ds-weight-regular|strong|bold).
+     Soft fills are color-mix(… 12-16%, var(--ds-surface)). TEXT and
+     numbers use the brand's text-safe --ds-*-ink roles; base roles are
+     for fills, rails, bars and marks only. No mixing to reach contrast.
+     ============================================================ */
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background-color: var(--ds-canvas); background: var(--ds-wash); background-attachment: fixed;
+    color: var(--ds-ink);
+    font-family: var(--ds-font-body); line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+  img, svg, table { max-width: 100%; }
+  code { font-family: var(--ds-font-mono); font-size: 0.92em; }
+
+  header.page { margin-bottom: 2rem; }
+  .eyebrow {
+    font-family: var(--ds-font-mono); font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--ds-primary); margin: 0 0 0.6rem;
+  }
+  h1 {
+    font-family: var(--ds-font-display); font-weight: var(--ds-weight-strong); font-size: clamp(1.8rem, 3.2vw, 2.5rem);
+    margin: 0 0 0.4rem; text-wrap: balance; letter-spacing: -0.01em; line-height: 1.25;
+  }
+  .sub { color: var(--ds-muted); font-size: 0.98rem; max-width: 68ch; margin: 0; }
+  .sub strong { color: var(--ds-ink); }
+
+  .cycle-strip {
+    display: flex; align-items: stretch; gap: 0; margin: 1.5rem 0 1.5rem; border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md); overflow: hidden; background: var(--ds-surface);
+  }
+  .cycle-strip .seg { padding: 0.85rem 1.2rem; flex: 1; border-right: 1px solid var(--ds-border); }
+  .cycle-strip .seg:last-child { border-right: none; }
+  .cycle-strip .seg .k { font-family: var(--ds-font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface)); display: block; margin-bottom: 0.2rem; }
+  .cycle-strip .seg .v { font-size: 0.92rem; font-weight: var(--ds-weight-strong); }
+  .cycle-strip .seg.build .v { color: var(--ds-warning-ink); }
+  .cycle-strip .seg.cooldown .v { color: var(--ds-muted); }
+  .cycle-strip .seg.today .v { color: var(--ds-danger-ink); }
+
+  section { margin-bottom: 2.75rem; }
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+    margin-bottom: 0.9rem; flex-wrap: wrap;
+  }
+  .section-head h2 {
+    font-family: var(--ds-font-display); font-size: 1.25rem; font-weight: var(--ds-weight-strong); margin: 0;
+  }
+  .section-head .count {
+    font-family: var(--ds-font-mono); font-size: 0.8rem; color: var(--ds-muted);
+  }
+  .section-note { font-size: 0.85rem; color: var(--ds-muted); margin: 0.2rem 0 0.9rem; max-width: 74ch; }
+  .callout {
+    font-size: 0.85rem; background: color-mix(in oklab, var(--ds-danger) 12%, var(--ds-surface)); color: var(--ds-danger-ink); border-radius: var(--ds-radius-sm);
+    padding: 0.7rem 0.9rem; margin: 0.7rem 0 0; max-width: 80ch; line-height: 1.55;
+  }
+  .callout strong { font-weight: var(--ds-weight-bold); }
+  .callout.warn { background: color-mix(in oklab, var(--ds-warning) 16%, var(--ds-surface)); color: var(--ds-warning-ink); }
+  .callout.ok { background: color-mix(in oklab, var(--ds-success) 14%, var(--ds-surface)); color: var(--ds-success-ink); }
+
+  /* ---- Scoreboard (every tile reduced over DATA) ---- */
+  .scoreboard {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(138px, 1fr)); gap: 1px;
+    background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-md); overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  /* hairlines: each tile's outline fills the 1px gap; the container clips the
+     outer edge, so an unfilled last row stays surface-coloured */
+  .stat { background: var(--ds-surface); padding: 0.85rem 1rem 0.9rem; display: flex; flex-direction: column; gap: 0.05rem;
+    outline: 1px solid var(--ds-border); }
+  .stat .n { font-family: var(--ds-font-mono); font-size: 1.45rem; font-weight: var(--ds-weight-regular); line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .stat .k { font-family: var(--ds-font-mono); font-size: 0.63rem; letter-spacing: 0.1em; text-transform: uppercase; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface)); }
+  .stat.is-ok .n { color: var(--ds-success-ink); }
+  .stat.is-warn .n { color: var(--ds-warning-ink); }
+  .stat.is-plan .n { color: var(--ds-info-ink); }
+  .stat.is-blocked .n { color: var(--ds-danger-ink); }
+
+  /* ---- Risk & conflict panel ---- */
+  .conflicts { display: flex; flex-direction: column; gap: 0.6rem; }
+  .conflict {
+    background: var(--ds-surface); border: 1px solid var(--ds-border); border-left: 4px solid var(--ds-danger);
+    border-radius: var(--ds-radius-sm); padding: 0.85rem 1rem 0.9rem;
+    box-shadow: var(--ds-shadow-sm);
+  }
+  .conflict.k-stall { border-left-color: var(--ds-warning); }
+  .conflict.k-unshaped { border-left-color: var(--ds-info-ink); }
+  .conflict.k-overlap { border-left-color: var(--ds-primary-strong); }
+  .conflict-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 0.7rem; margin-bottom: 0.3rem; }
+  .conflict-head h3 { font-family: var(--ds-font-display); font-size: 1.02rem; font-weight: var(--ds-weight-strong); margin: 0; }
+  .conflict-head .kind {
+    font-family: var(--ds-font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 0.16rem 0.45rem; border-radius: var(--ds-radius-lg); background: color-mix(in oklab, var(--ds-danger) 12%, var(--ds-surface)); color: var(--ds-danger-ink);
+  }
+  .conflict.k-stall .kind { background: color-mix(in oklab, var(--ds-warning) 16%, var(--ds-surface)); color: var(--ds-warning-ink); }
+  .conflict.k-unshaped .kind { background: color-mix(in oklab, var(--ds-info) 14%, var(--ds-surface)); color: var(--ds-info-ink); }
+  .conflict.k-overlap .kind { background: var(--ds-primary-soft); color: var(--ds-primary-strong); }
+  .conflict-head .when { font-family: var(--ds-font-mono); font-size: 0.68rem; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface)); margin-inline-start: auto; }
+  .conflict p { margin: 0; font-size: 0.86rem; color: var(--ds-muted); max-width: 84ch; line-height: 1.55; }
+  .conflict-items { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.55rem; }
+  a.itemlink {
+    font-family: var(--ds-font-mono); font-size: 0.68rem; padding: 0.18rem 0.5rem; border-radius: var(--ds-radius-lg);
+    background: var(--ds-inset); color: var(--ds-muted); text-decoration: none; border: 1px solid transparent;
+  }
+  a.itemlink:hover { border-color: var(--ds-primary); color: var(--ds-primary); }
+  a.itemlink:focus-visible { outline: 2px solid var(--ds-primary); outline-offset: 2px; }
+
+  /* ---- Controls ---- */
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 1.1rem 2rem; align-items: flex-end;
+    padding-bottom: 1rem; border-bottom: 1px solid var(--ds-border); margin-bottom: 1.15rem;
+  }
+  .ctl { display: flex; flex-direction: column; gap: 0.4rem; }
+  .ctl > .lbl { font-family: var(--ds-font-mono); font-size: 0.63rem; letter-spacing: 0.11em; text-transform: uppercase; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface)); }
+  .seg { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .head-actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+
+  button.chip {
+    font: inherit; font-size: 0.78rem; color: var(--ds-muted); background: var(--ds-surface);
+    border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg); padding: 0.26rem 0.7rem; cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  }
+  button.chip:hover { border-color: var(--ds-primary); color: var(--ds-ink); }
+  button.chip:focus-visible { outline: 2px solid var(--ds-primary); outline-offset: 2px; }
+  button.chip[aria-pressed="true"] { background: var(--ds-primary); border-color: var(--ds-primary); color: var(--ds-on-primary); }
+  button.chip .cnt { font-family: var(--ds-font-mono); font-variant-numeric: tabular-nums; opacity: 0.65; margin-inline-start: 0.35rem; font-size: 0.9em; }
+  button.chip.ghost { font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: var(--ds-radius-sm); }
+
+  /* ---- Cycle timeline ---- */
+  .gantt-card {
+    background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg);
+    box-shadow: var(--ds-shadow-md);
+    padding: 1.25rem 1.25rem 1.1rem;
+  }
+  .gantt-scroll { overflow-x: auto; }
+  .gantt { min-width: 920px; }
+
+  .gticks { display: grid; grid-template-columns: 250px 1fr; margin-bottom: 0.3rem; }
+  .gticks .tickrow { position: relative; height: 1.4rem; }
+  .gtick {
+    position: absolute; top: 0; font-family: var(--ds-font-mono); font-size: 0.66rem; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface));
+    white-space: nowrap; transform: translateX(-2px); border-left: 1px solid var(--ds-border); padding-left: 0.35rem;
+  }
+  .gtick.cooldown-start { color: var(--ds-muted); font-weight: var(--ds-weight-strong); border-left-color: var(--ds-muted); }
+  .gtick.today-start { color: var(--ds-danger-ink); font-weight: var(--ds-weight-strong); border-left-color: var(--ds-danger); }
+  .gtick.deadline { color: var(--ds-danger-ink); font-weight: var(--ds-weight-strong); border-left-color: var(--ds-danger); }
+  /* ticks near the right edge anchor from the right so the label never overflows */
+  .gtick.tail {
+    border-left: none; border-right: 1px solid var(--ds-border);
+    padding-left: 0; padding-right: 0.35rem; transform: translateX(2px);
+  }
+  .gtick.tail.cooldown-start { border-right-color: var(--ds-muted); }
+  .gtick.tail.today-start { border-right-color: var(--ds-danger); }
+  .gtick.tail.deadline { border-right-color: var(--ds-danger); }
+
+  .grow {
+    display: grid; grid-template-columns: 250px 1fr; align-items: center;
+    border-top: 1px solid var(--ds-border); padding: 0.6rem 0;
+  }
+  .gname { font-size: 0.85rem; padding-right: 0.75rem; }
+  .gname .id { font-family: var(--ds-font-mono); font-size: 0.68rem; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface)); display: block; margin-top: 0.1rem; }
+  .gstatus {
+    font-family: var(--ds-font-mono); font-size: 0.62rem; padding: 0.12rem 0.5rem; border-radius: var(--ds-radius-lg);
+    display: inline-block; margin-top: 0.35rem; white-space: nowrap; letter-spacing: 0.01em;
+  }
+  .gstatus.commit { background: color-mix(in oklab, var(--ds-warning) 16%, var(--ds-surface)); color: var(--ds-warning-ink); }
+  .gstatus.ready { background: var(--ds-primary-soft); color: var(--ds-primary); }
+  .gstatus.bet { background: color-mix(in oklab, var(--ds-info) 14%, var(--ds-surface)); color: var(--ds-info-ink); }
+  .gtrackwrap { position: relative; height: 1.9rem; background: var(--ds-inset); border-radius: var(--ds-radius-sm); }
+  .gzone-cooldown {
+    position: absolute; top: 0; bottom: 0; right: 0; background: color-mix(in oklab, var(--ds-muted) 12%, var(--ds-surface));
+    border-left: 2px dashed var(--ds-muted); border-radius: 0 var(--ds-radius-sm) var(--ds-radius-sm) 0;
+  }
+  .gtoday {
+    position: absolute; top: -1.6rem; bottom: -0.1rem; width: 0; border-left: 2px dashed var(--ds-danger); z-index: 4;
+  }
+  .gtoday-label {
+    position: absolute; top: -1.55rem; left: 0.3rem; font-family: var(--ds-font-mono); font-size: 0.62rem; color: var(--ds-danger-ink);
+    white-space: nowrap; z-index: 5;
+  }
+  .bar { position: absolute; top: 3px; bottom: 3px; border-radius: var(--ds-radius-sm); z-index: 2; min-width: 3px; }
+  .bar.b-commit { background: var(--ds-warning); }
+  .bar.b-ready { background: var(--ds-primary); }
+  .bar.b-bet { background: var(--ds-info); }
+  .gname a.card-title { font-family: var(--ds-font-body); font-size: 0.85rem; }
+  .gcaption { font-size: 0.82rem; color: var(--ds-muted); line-height: 1.5; padding: 0.35rem 0 0.1rem; }
+  .gcaption .dates { font-family: var(--ds-font-mono); font-size: 0.74rem; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface)); }
+  .gantt-legend {
+    display: flex; flex-wrap: wrap; gap: 1.1rem; margin-top: 1.1rem; padding-top: 0.9rem;
+    border-top: 1px solid var(--ds-border); font-size: 0.76rem; color: var(--ds-muted);
+  }
+  .gantt-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .swatch { width: 0.75rem; height: 0.75rem; border-radius: var(--ds-radius-sm); display: inline-block; flex: none; }
+  .swatch.commit { background: var(--ds-warning); }
+  .swatch.ready { background: var(--ds-primary); }
+  .swatch.bet { background: var(--ds-info); }
+  .swatch.cooldownzone { background: color-mix(in oklab, var(--ds-muted) 12%, var(--ds-surface)); border: 1px dashed var(--ds-muted); }
+  .swatch.todayline { background: transparent; border-left: 2px dashed var(--ds-danger); border-radius: 0; width: 0.4rem; }
+
+  /* ---- Hill chart ---- */
+  .hill-wrap { display: flex; align-items: center; gap: 0.6rem; }
+  .hill-wrap svg { flex-shrink: 0; }
+  .hill-label { font-size: 0.86rem; }
+  .hill-label .state { font-weight: var(--ds-weight-strong); }
+  .hill-label .state.uphill { color: var(--ds-muted); }
+  .hill-label .state.peak { color: var(--ds-primary); }
+  .hill-label .state.downhill { color: var(--ds-success-ink); }
+  .hill-label .state.blocked { color: var(--ds-danger-ink); }
+
+  /* ---- Feature cards ---- */
+  .cards { display: flex; flex-direction: column; gap: 0.6rem; }
+  details.card {
+    background: var(--ds-surface); border: 1px solid var(--ds-border); border-radius: var(--ds-radius-md);
+    box-shadow: var(--ds-shadow-sm);
+    overflow: hidden; scroll-margin-top: 1.5rem;
+  }
+  details.card.is-target { border-color: var(--ds-primary); }
+  details.card > summary {
+    list-style: none; cursor: pointer; padding: 0.9rem 1.1rem; display: flex; align-items: center;
+    gap: 0.85rem; position: relative;
+  }
+  details.card > summary::-webkit-details-marker { display: none; }
+  details.card > summary::before {
+    content: "\203A"; font-family: var(--ds-font-display); font-size: 1.3rem; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface));
+    transform: rotate(0deg); transition: transform 0.15s ease; width: 1rem; text-align: center; flex-shrink: 0;
+  }
+  details.card[open] > summary::before { transform: rotate(90deg); color: var(--ds-primary); }
+  details.card > summary:focus-visible { outline: 2px solid var(--ds-primary); outline-offset: -2px; }
+
+  .rail { width: 4px; align-self: stretch; min-height: 2.2rem; border-radius: var(--ds-radius-sm); flex-shrink: 0; }
+  .rail.shipped { background: var(--ds-success); }
+  .rail.progress { background: var(--ds-warning); }
+  .rail.planned { background: var(--ds-info); }
+  .rail.backlog { background: var(--ds-muted); }
+  .rail.ready { background: var(--ds-primary); }
+
+  .card-head-main { flex: 1; min-width: 0; }
+  .card-title-row { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+  .card-id { font-family: var(--ds-font-mono); font-size: 0.72rem; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface)); }
+  .card-title { font-family: var(--ds-font-display); font-size: 1.05rem; font-weight: var(--ds-weight-strong); }
+  a.card-title { color: inherit; text-decoration: none; border-bottom: 1px solid transparent; }
+  a.card-title:hover { border-bottom-color: var(--ds-primary); }
+  a.card-title:focus-visible { outline: 2px solid var(--ds-primary); outline-offset: 2px; border-radius: var(--ds-radius-sm); }
+  .card-summary { font-size: 0.86rem; color: var(--ds-muted); margin: 0.15rem 0 0; max-width: 70ch; }
+
+  .chips { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+  .pill {
+    font-family: var(--ds-font-mono); font-size: 0.68rem; padding: 0.22rem 0.55rem; border-radius: var(--ds-radius-lg);
+    white-space: nowrap; letter-spacing: 0.02em;
+  }
+  .pill.shipped { background: color-mix(in oklab, var(--ds-success) 14%, var(--ds-surface)); color: var(--ds-success-ink); }
+  .pill.progress { background: color-mix(in oklab, var(--ds-warning) 16%, var(--ds-surface)); color: var(--ds-warning-ink); }
+  .pill.planned { background: color-mix(in oklab, var(--ds-info) 14%, var(--ds-surface)); color: var(--ds-info-ink); }
+  .pill.backlog { background: var(--ds-inset); color: var(--ds-muted); }
+  .pill.ready { background: var(--ds-primary-soft); color: var(--ds-primary); }
+  .pill.priority { background: var(--ds-inset); color: var(--ds-muted); }
+  .pill.alarm { background: color-mix(in oklab, var(--ds-danger) 12%, var(--ds-surface)); color: var(--ds-danger-ink); }
+
+  .card-body { padding: 0 1.1rem 1.15rem 2.45rem; display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .card-body h4 {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface));
+    margin: 0 0 0.4rem; font-weight: var(--ds-weight-strong);
+  }
+  .card-body p, .card-body ul { margin: 0; font-size: 0.87rem; }
+  .card-body ul { padding-left: 1.1rem; }
+  .card-body li { margin-bottom: 0.3rem; }
+  .card-body .span-all { grid-column: 1 / -1; }
+  .card-body > * { min-width: 0; }
+  .evidence {
+    font-family: var(--ds-font-mono); font-size: 0.78rem; color: var(--ds-muted); background: var(--ds-inset);
+    border-radius: var(--ds-radius-sm); padding: 0.55rem 0.7rem; line-height: 1.6; overflow-wrap: anywhere;
+  }
+  .evidence a { color: var(--ds-primary); }
+  .flag {
+    font-size: 0.8rem; color: var(--ds-warning-ink); background: color-mix(in oklab, var(--ds-warning) 16%, var(--ds-surface)); border-radius: var(--ds-radius-sm);
+    padding: 0.5rem 0.65rem; margin-top: 0.5rem; line-height: 1.5;
+  }
+  .flag.resolved { color: var(--ds-success-ink); background: color-mix(in oklab, var(--ds-success) 14%, var(--ds-surface)); }
+  .flag.blocked { color: var(--ds-danger-ink); background: color-mix(in oklab, var(--ds-danger) 12%, var(--ds-surface)); }
+
+  .taskmeta { font-family: var(--ds-font-mono); font-size: 0.7rem; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface)); }
+  .taskbar { height: 6px; border-radius: var(--ds-radius-sm); background: var(--ds-inset); overflow: hidden; margin-top: 0.35rem; max-width: 320px; }
+  .taskbar > span { display: block; height: 100%; background: var(--ds-primary); }
+
+  /* ---- Git verification block ---- */
+  .gitblock { display: flex; flex-direction: column; gap: 0.55rem; }
+  .gitmeta { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; }
+  .verdict {
+    font-family: var(--ds-font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em;
+    padding: 0.2rem 0.5rem; border-radius: var(--ds-radius-lg); display: inline-block;
+  }
+  .v-released { background: color-mix(in oklab, var(--ds-success) 14%, var(--ds-surface)); color: var(--ds-success-ink); }
+  .v-in-develop { background: var(--ds-primary-soft); color: var(--ds-primary); }
+  .v-branch-only { background: color-mix(in oklab, var(--ds-warning) 16%, var(--ds-surface)); color: var(--ds-warning-ink); }
+  .v-not-started { background: var(--ds-inset); color: var(--ds-muted); }
+  .v-superseded { background: var(--ds-inset); color: var(--ds-primary-strong); }
+  .v-reverted { background: color-mix(in oklab, var(--ds-danger) 12%, var(--ds-surface)); color: var(--ds-danger-ink); }
+  .method { font-family: var(--ds-font-mono); font-size: 0.68rem; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface)); }
+  .branch-scroll { overflow-x: auto; }
+  table.branches {
+    border-collapse: collapse; font-family: var(--ds-font-mono); font-size: 0.72rem; min-width: 460px; width: 100%;
+  }
+  table.branches th {
+    text-align: left; font-weight: var(--ds-weight-regular); color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface)); text-transform: uppercase;
+    letter-spacing: 0.07em; font-size: 0.6rem; padding: 0.25rem 0.6rem 0.25rem 0; border-bottom: 1px solid var(--ds-border);
+    white-space: nowrap;
+  }
+  table.branches td {
+    padding: 0.3rem 0.6rem 0.3rem 0; border-bottom: 1px solid var(--ds-border); color: var(--ds-muted); vertical-align: top;
+  }
+  table.branches td.warn { color: var(--ds-danger-ink); }
+  .unverifiable { font-size: 0.8rem; color: var(--ds-muted); }
+  .unverifiable h5 {
+    font-family: var(--ds-font-mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface)); margin: 0 0 0.25rem; font-weight: var(--ds-weight-strong);
+  }
+
+  /* ---- Releases ---- */
+  .releases { display: flex; flex-direction: column; gap: 0.6rem; }
+  .rel-name { font-family: var(--ds-font-mono); font-size: 0.82rem; font-weight: var(--ds-weight-strong); color: var(--ds-primary); }
+  .rel-date { font-family: var(--ds-font-mono); font-size: 0.7rem; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface)); }
+  .rel-headline { font-size: 0.88rem; color: var(--ds-muted); margin: 0.15rem 0 0; max-width: 74ch; }
+  .rel-body { padding: 0 1.1rem 1.15rem 2.45rem; display: flex; flex-direction: column; gap: 0.9rem; }
+  .relgroup h5 {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: color-mix(in oklab, var(--ds-muted) 80%, var(--ds-surface));
+    margin: 0 0 0.35rem; font-weight: var(--ds-weight-strong);
+  }
+  .relgroup ul { margin: 0; padding-left: 1.1rem; font-size: 0.85rem; }
+  .relgroup li { margin-bottom: 0.25rem; }
+
+  .empty {
+    font-size: 0.85rem; color: var(--ds-muted); background: var(--ds-surface); border: 1px dashed var(--ds-border);
+    border-radius: var(--ds-radius-sm); padding: 0.8rem 1rem;
+  }
+
+  footer.methodology {
+    margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--ds-border);
+    font-size: 0.8rem; color: var(--ds-muted); max-width: 80ch;
+  }
+  footer.methodology h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ds-ink); margin: 1.2rem 0 0.5rem; }
+  footer.methodology h3:first-child { margin-top: 0; }
+  footer.methodology ul { padding-left: 1.1rem; }
+  footer.methodology li { margin-bottom: 0.4rem; line-height: 1.55; }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 1.5rem 16px 4rem; }
+    .card-body { grid-template-columns: minmax(0, 1fr); }
+    .cycle-strip { flex-direction: column; }
+    .cycle-strip .seg { border-right: none; border-bottom: 1px solid var(--ds-border); width: 100%; }
+    .cycle-strip .seg:last-child { border-bottom: none; }
+    .gticks, .grow { grid-template-columns: 170px 1fr; }
+    .card-body, .rel-body { padding-left: 1.1rem; }
+    details.card > summary { flex-wrap: wrap; }
+    .chips { justify-content: flex-start; }
+    .gantt-card { padding: 1rem 0.85rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="page">
+    <p class="eyebrow" id="eyebrow"></p>
+    <h1 id="page-title"></h1>
+    <p class="sub" id="subtitle"></p>
+  </header>
+
+  <div class="cycle-strip" id="cycle-strip"></div>
+
+  <div class="scoreboard" id="scoreboard"></div>
+
+  <p class="callout" id="selfcheck" hidden></p>
+
+  <!-- 2. Risk & conflict panel — always rendered, never hidden -->
+  <section id="risk">
+    <div class="section-head">
+      <h2>Risk &amp; conflict</h2>
+      <span class="count" id="risk-count"></span>
+    </div>
+    <p class="section-note" id="risk-note"></p>
+    <div class="conflicts" id="conflicts"></div>
+  </section>
+
+  <!-- 3. Timeline -->
+  <section id="timeline">
+    <div class="section-head">
+      <h2>The schedule at a glance</h2>
+      <span class="count" id="timeline-count"></span>
+    </div>
+    <div class="gantt-card">
+      <div class="gantt-scroll">
+        <div class="gantt" id="gantt"></div>
+      </div>
+      <div class="gantt-legend" id="gantt-legend"></div>
+    </div>
+  </section>
+
+  <!-- 4. Feature cards -->
+  <section id="features">
+    <div class="section-head">
+      <h2>Features</h2>
+      <span class="count" id="features-count"></span>
+    </div>
+    <nav class="controls" aria-label="Feature filters">
+      <div class="ctl">
+        <span class="lbl" id="lbl-lane">Lane</span>
+        <div class="seg" role="group" aria-labelledby="lbl-lane" id="lane-filter"></div>
+      </div>
+      <div class="ctl">
+        <span class="lbl" id="lbl-pred">Show only — any of</span>
+        <div class="seg" role="group" aria-labelledby="lbl-pred" id="pred-filter"></div>
+      </div>
+      <div class="ctl">
+        <span class="lbl" id="lbl-exp">All cards</span>
+        <div class="head-actions" role="group" aria-labelledby="lbl-exp">
+          <button class="chip ghost" type="button" id="feat-expand">Expand all</button>
+          <button class="chip ghost" type="button" id="feat-collapse">Collapse all</button>
+        </div>
+      </div>
+    </nav>
+    <div id="lanes"></div>
+  </section>
+
+  <!-- 5. Releases -->
+  <section id="releases-section">
+    <div class="section-head">
+      <h2>Releases</h2>
+      <span class="count" id="releases-count"></span>
+    </div>
+    <p class="section-note">Newest first. The closed row is what a person can now do; open it for the commit-level record.</p>
+    <nav class="controls" aria-label="Release controls">
+      <div class="ctl">
+        <span class="lbl" id="lbl-rexp">All releases</span>
+        <div class="head-actions" role="group" aria-labelledby="lbl-rexp">
+          <button class="chip ghost" type="button" id="rel-expand">Expand all</button>
+          <button class="chip ghost" type="button" id="rel-collapse">Collapse all</button>
+        </div>
+      </div>
+    </nav>
+    <div class="releases" id="releases"></div>
+  </section>
+
+  <!-- 6. Footer -->
+  <footer class="methodology" id="methodology"></footer>
+
+</div>
+
+<script>
+/* ============================================================================
+   THE ONE SOURCE OF TRUTH.
+
+   Nothing below this object is hand-positioned. Every bar left/width, every
+   tick, the today line, every section count, every scoreboard tile and every
+   hill dot is computed from these values by the render functions further down.
+   If a number appears on the page, it came from here through a function.
+
+   Prose fields (summary, who, text, evidence, headline, remaining, groups)
+   accept inline HTML — <code>, <strong>, <em>. They are injected as markup on
+   purpose, matching the house pattern. Do not put untrusted text in them.
+   ============================================================================ */
+
+/* WORKED EXAMPLE for a fictional product ("Parcelry", a parcel-locker app).
+   Regenerate every row from git; never reuse these values. */
+const DATA = {
+  asOf: '2026-03-10',
+  framing: 'shape-up',          /* shape-up | scrum | kanban | none — labels only */
+  stallDetection: true,         /* copy from the facts file; false renders movement as unknown */
+  branches: { production: 'main', integration: 'develop' },   /* copy from the facts file */
+
+  meta: {
+    eyebrow: 'Parcelry · delivery roadmap',
+    title: 'Delivery Roadmap',
+    subtitle: 'Worked example only. Replace <code>DATA</code> wholesale from a fresh <code>git fetch</code> and a read of each spec’s task list. The header, the bars, the ticks and every count on this page are computed from that object — there is nothing else to edit.'
+  },
+
+  /* optional — omit when the team has no fixed window; the page then derives a frame */
+  cycle: {
+    start: '2026-03-02',
+    buildEnd: '2026-04-10',
+    cooldownStart: '2026-04-10',
+    cooldownEnd: '2026-04-24'
+  },
+
+  ticks: [
+    { date: '2026-03-16', label: 'Mar 16 · deadline', kind: 'deadline' },
+    { date: '2026-03-27', label: 'Mar 27', kind: 'plain' }
+  ],
+
+  features: [
+    {
+      id: 'P-12',
+      title: 'Locker reservation holds',
+      summary: 'A sender can hold a locker bay for up to two hours while they drive to it, so the bay is still free when they arrive.',
+      who: 'Small shops dropping several parcels at once. Recipients see nothing different — the hold ends when the parcel goes in.',
+      lane: 'shipped',
+      appetite: 'small batch',
+      hill: 1,
+      hillNote: 'v1 shipped; the branch still carries follow-ups',
+      start: null,
+      due: null,
+      barKind: 'none',
+      remaining: [
+        'Decide whether the branch tail — hold extension and a no-show penalty — is a v2 or belongs to the pricing work.'
+      ],
+      flags: [],
+      tasks: { done: 28, total: 28 },
+      git: {
+        shipped: true,
+        verdict: 'released',
+        method: 'git merge-base --is-ancestor against the production branch',
+        release: 'release-9',
+        evidence: 'api 4c1a9e2 merged via 8d20b17; web 1f0e6aa via 2b93c41. Both ancestors of the production branch through release-9 (tagged v2.4.0, 2026-03-03).',
+        branches: [
+          { repo: 'api', ref: 'origin/p-12-reservation-holds', tip: '9e77d01', tipDate: '2026-03-01', ahead: 6, behind: 0, prevTip: '3a5c882', stalled: false }
+        ],
+        unverifiable: []
+      }
+    },
+    {
+      id: 'P-17',
+      title: 'Courier handover v2',
+      summary: 'Couriers scan a whole cage of parcels into a locker bank in one pass instead of bay by bay.',
+      who: 'Couriers on dense urban routes, where the per-bay scan is most of the stop time.',
+      lane: 'inflight',
+      appetite: '6 wks',
+      hill: 0.78,
+      hillNote: 'downhill but not moving — the remaining work is known',
+      start: '2026-03-02',
+      due: '2026-03-16',
+      barKind: 'commit',
+      remaining: [
+        'Frontend: 12 tasks open — batch-scan screen and the partial-failure state.',
+        'Two manual walkthroughs on a real locker bank.',
+        'Merge to the integration branch, then cut a release branch.'
+      ],
+      flags: [
+        { kind: 'warn', title: 'Scope grew on a branch that then went quiet.', text: 'Offline queueing landed after the first date slipped and is in no spec. Nothing has landed since.' }
+      ],
+      tasks: { done: 31, total: 43 },
+      git: {
+        shipped: false,
+        verdict: 'branch-only',
+        method: 'branch diffed against the production branch: adds files production lacks',
+        release: null,
+        evidence: 'Neither tip is an ancestor of the integration or production branch; <code>git diff origin/&lt;production&gt; origin/p-17-batch-handover -- app/Handover/</code> shows only additions.',
+        branches: [
+          { repo: 'api', ref: 'origin/p-17-batch-handover', tip: '5b0a7d4', tipDate: '2026-03-03', ahead: 19, behind: 4, prevTip: '5b0a7d4', stalled: true },
+          { repo: 'web', ref: 'origin/p-17-batch-handover', tip: 'a81e9f0', tipDate: '2026-03-02', ahead: 9, behind: 11, prevTip: 'a81e9f0', stalled: true }
+        ],
+        unverifiable: []
+      }
+    },
+    {
+      id: 'P-19',
+      title: 'Push notifications',
+      summary: 'Recipients get a push when a parcel lands and a reminder before it is returned, alongside the existing SMS.',
+      who: 'Recipients who miss the SMS and let parcels expire back to the sender.',
+      lane: 'inflight',
+      appetite: '2 wks',
+      hill: 0.92,
+      hillNote: 'code complete; what is left is ops, not build',
+      start: '2026-03-02',
+      due: '2026-03-13',
+      barKind: 'ready',
+      remaining: [
+        'Upload the production push certificate and set the key in the production environment.',
+        'Backend gates: tests, static analysis, formatter.',
+        'Staging walkthrough on one iOS and one Android device, plus sign-off.'
+      ],
+      flags: [
+        { kind: 'blocked', title: 'Blocked on one ops action.', text: 'The push certificate lives with the platform team. Until it is uploaded the feature cannot be signed off, however complete the code is.' }
+      ],
+      tasks: { done: 22, total: 24 },
+      git: {
+        shipped: false,
+        verdict: 'in-develop',
+        method: 'content-presence on the integration branch; not yet on production',
+        release: null,
+        evidence: 'api tip 0d4e5f6 merged to the integration branch at 7a8b9c0. web 3e2d1c0 merged at 6f5e4d3.',
+        branches: [
+          /* `stalled` omitted here on purpose — it is inferred from prevTip !== tip. */
+          { repo: 'api', ref: 'origin/p-19-push', tip: 'c0ffee1', tipDate: '2026-03-09', ahead: 1, behind: 0, prevTip: '0d4e5f6' },
+          { repo: 'web', ref: 'origin/p-19-push', tip: '3e2d1c0', tipDate: '2026-03-04', ahead: 4, behind: 2, prevTip: '3e2d1c0', stalled: true }
+        ],
+        unverifiable: [
+          'Production push certificate upload (ops, invisible to git)',
+          'Staging verification on physical devices'
+        ]
+      }
+    },
+    {
+      id: 'P-15',
+      title: 'Route export',
+      summary: 'Dispatchers export the day’s locker route as a CSV for third-party routing tools.',
+      who: 'Dispatchers at partner couriers who plan routes outside the product.',
+      lane: 'inflight',
+      appetite: 'small batch',
+      hill: 0.6,
+      hillNote: 'shipped once, pulled back; the rework is understood',
+      start: null,
+      due: null,
+      barKind: 'none',
+      remaining: [
+        'Re-land with the timezone fix that caused the revert, behind a per-tenant flag.'
+      ],
+      flags: [
+        { kind: 'warn', title: 'Reads as shipped, is not live.', text: 'The <code>feat(export)</code> commits sit on the production branch, but a revert inside the same release removed them.' }
+      ],
+      tasks: { done: 9, total: 9 },
+      git: {
+        shipped: false,
+        verdict: 'reverted',
+        method: 'ancestor of production, then a revert found with git log --grep=revert',
+        release: null,
+        evidence: 'Merged at e1d2a9b and reverted at f4e5d6c, both between v2.3.2 and v2.4.0.',
+        branches: [],
+        unverifiable: []
+      }
+    },
+    {
+      id: 'P-21',
+      title: 'Pay at the locker',
+      summary: 'Cash-on-delivery parcels are paid by card at the locker screen before the bay opens.',
+      who: 'Recipients of cash-on-delivery parcels, who today must be home for a courier.',
+      lane: 'scheduled',
+      appetite: '6 wks',
+      hill: 0.5,
+      hillNote: 'fully shaped, nothing built',
+      start: '2026-03-09',
+      due: '2026-03-16',
+      barKind: 'bet',
+      remaining: [
+        'The spec is a 6-week appetite with 64 tasks. One week only fits the card-terminal handshake and a receipt screen.',
+        'Cut explicitly — not silently: refunds, partial payment, the reconciliation report.'
+      ],
+      flags: [
+        { kind: 'blocked', title: 'This is a scope decision hiding inside a date.', text: 'A 6-week commitment given one week is only honest if the minimal slice is named before work starts.' }
+      ],
+      tasks: { done: 0, total: 64 },
+      git: {
+        shipped: false,
+        verdict: 'not-started',
+        method: 'no branch matching p-21* in any repo; no commit touches the signature paths on any ref',
+        release: null,
+        evidence: 'The spec folder is complete — spec, plan, contracts, 64 tasks, none ticked. <code>git log --all -- app/Payments/Locker*</code> is empty.',
+        branches: [],
+        unverifiable: []
+      }
+    },
+    {
+      id: 'P-23',
+      title: 'Recipient app redesign',
+      summary: 'A redesign of the recipient pickup flow, backed by a usability audit — but still no spec, no appetite, no design direction.',
+      who: 'Recipients collecting parcels. The audit found the expired-parcel state actively misleading rather than merely ugly.',
+      lane: 'scheduled',
+      appetite: 'big batch',
+      hill: 0.2,
+      hillNote: 'uphill, but genuinely started — audit done, ideation next',
+      start: '2026-03-23',
+      due: '2026-04-10',
+      barKind: 'bet',
+      remaining: [
+        'Cluster the audit findings into scored briefs and a decision record — before Mar 23, not during it.',
+        'Fix a real appetite. A 2.5-week span for a big-batch item is already compressed.'
+      ],
+      flags: [
+        { kind: 'warn', title: 'Overlaps the back half of the window entirely.', text: 'Two unshaped commitments sharing one engineer across the same fortnight. One of the two dates is probably wrong.' }
+      ],
+      tasks: { done: 0, total: 0 },
+      git: {
+        shipped: false,
+        verdict: 'not-started',
+        method: 'no branch, no spec folder; audit artefacts only',
+        release: null,
+        evidence: 'Audit folder only — 31 findings across 4 themes, screenshots at phone and desktop widths.',
+        branches: [],
+        unverifiable: []
+      }
+    },
+    {
+      id: 'P-08',
+      title: 'Bulk label import',
+      summary: 'Senders upload a spreadsheet of parcels and get printable locker labels back.',
+      who: 'High-volume senders who today type each parcel in by hand.',
+      lane: 'deferred',
+      appetite: '2 wks',
+      hill: 0,
+      hillNote: 'not shaped; the old branch is regressive',
+      start: null,
+      due: null,
+      barKind: 'none',
+      remaining: [
+        'Re-commit only if bulk entry shows up in the top friction items of the next support review.'
+      ],
+      flags: [
+        { kind: 'resolved', title: 'Deferred deliberately, not dropped.', text: 'Recorded at planning with a named re-entry condition.' }
+      ],
+      tasks: { done: 0, total: 0 },
+      git: {
+        shipped: false,
+        verdict: 'superseded',
+        method: 'branch diffed against production: it deletes validation production has',
+        release: null,
+        evidence: 'origin/bulk-import is 14 ahead of the integration branch, but its delta against production removes the address validator added in v2.3.0. Merging it would regress production.',
+        branches: [
+          { repo: 'api', ref: 'origin/bulk-import', tip: '77aa01b', tipDate: '2026-01-19', ahead: 14, behind: 88, prevTip: '77aa01b', stalled: true }
+        ],
+        unverifiable: []
+      }
+    }
+  ],
+
+  releases: [
+    {
+      name: 'release-9',
+      date: '2026-03-03',
+      tags: { api: 'v2.4.0', web: 'v2.4.0' },
+      repos: ['api', 'web'],
+      headline: 'Senders can hold a locker bay for two hours while they travel to it.',
+      notes: null,       /* hub path of the release-notes folder, shown as text */
+      notesUrl: null,    /* published release-notes URL; preferred, rendered as a link */
+      groups: {
+        Features: [
+          'Reservation holds on locker bays (<code>4c1a9e2</code>)',
+          'Hold countdown on the sender’s parcel screen (<code>1f0e6aa</code>)'
+        ],
+        Fixes: [
+          'Expired holds release the bay within a minute'
+        ],
+        Uncategorised: [
+          'Revert "feat(export): route CSV" (<code>f4e5d6c</code>)'
+        ]
+      },
+      commitCount: 7,
+      shas: { api: '8d20b17', web: '2b93c41' }
+    },
+    {
+      name: 'release-8',
+      date: '2026-02-11',
+      tags: { api: 'v2.3.2' },
+      repos: ['api'],
+      headline: 'Operators can export every locker transaction in a date range, including the ones from decommissioned banks.',
+      notes: null,
+      groups: {
+        Features: [
+          'Transaction export with summary totals (<code>2d4f6a8</code>)'
+        ],
+        Fixes: [
+          'Transactions on decommissioned banks no longer dropped from exports (<code>9b7c5e3</code>)'
+        ]
+      },
+      commitCount: 3,
+      shas: { api: '5c6d7e8' }
+    }
+  ],
+
+  conflicts: [
+    {
+      kind: 'capacity',
+      date: '2026-03-16',
+      title: 'Mar 16 is a two-way finish line for one engineer',
+      text: 'Courier handover v2 and Pay at the locker both land on the same day, and the handover branch has not moved since the window opened. A shared deadline is not the same thing as a resourced one.',
+      items: ['P-17', 'P-21']
+    },
+    {
+      kind: 'overlap',
+      date: '2026-03-23',
+      title: 'Two unshaped commitments share the back half of the window',
+      text: 'Pay at the locker’s tail and the recipient redesign want the same fortnight, and neither has a fixed appetite. Whichever is really second should be said out loud now.',
+      items: ['P-21', 'P-23']
+    },
+    {
+      kind: 'phantom',
+      date: null,
+      title: 'Route export is fully ticked and not live',
+      text: 'Nine of nine tasks ticked and <code>feat</code> commits on production, but the merge was reverted inside the same release.',
+      items: ['P-15']
+    }
+  ],
+
+  methodology: [
+    {
+      heading: 'How to regenerate this page',
+      items: [
+        'Every value lives in the <code>DATA</code> object at the top of the script. Rewrite it; touch no markup.',
+        'Bar positions, tick positions, the today line, hill dots and every section count are computed at render time from <code>DATA</code>. There are no literal percentages or hand-counted totals in this file — by construction, the page cannot disagree with its own data.',
+        'Open the console after a regenerate. A self-check logs a warning for any feature whose <code>due</code> precedes its <code>start</code>, whose bar would fall outside the window, or whose task count is impossible.'
+      ]
+    },
+    {
+      heading: 'Methodology &amp; assumptions',
+      items: [
+        '<strong>Git wins over task lists.</strong> A ticked task is an intention; a merge commit is a fact. Each feature records the exact method used to reach its verdict in <code>git.method</code>.',
+        '<strong>Ops work is unverifiable from here.</strong> Anything that lives outside the repositories is listed under <code>git.unverifiable</code> and reported as its task list records it, not as evidence.',
+        '<strong>Spec <code>Status:</code> headers are unreliable</strong> — most read “Draft” regardless of actual state. Branch and merge evidence is used instead.',
+        '<strong>Hill position replaces percent-complete.</strong> Uphill means the unknowns are still open; the peak means fully shaped and about to start building; downhill means the remaining work is known and just needs doing.'
+      ]
+    }
+  ]
+};
+
+/* ============================================================================
+   DATE MATH — one function positions everything horizontally.
+   ============================================================================ */
+
+const DAY_MS = 86400000;
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function ts(iso) { return Date.parse(iso + 'T00:00:00Z'); }
+
+/* ============================================================================
+   FRAMING — every method-specific word comes from here, keyed by DATA.framing.
+   Switching framing is a DATA change, never a markup change.
+   ============================================================================ */
+
+const FRAMINGS = {
+  'shape-up': { items: 'bets', window: 'cycle', build: 'Build', cooldown: 'Cooldown', size: 'appetite',
+    scheduled: 'Scheduled this cycle', deferred: 'Deferred out of this cycle',
+    unscheduled: 'Betting table — unscheduled',
+    unscheduledNote: 'Candidates for a future betting table, ordered by how shaped they already are.',
+    betBar: 'Scheduled bet — still being built' },
+  scrum: { items: 'sprint goals', window: 'sprint', build: 'Sprints', cooldown: 'Hardening', size: 'estimate',
+    scheduled: 'Planned for this sprint', deferred: 'Moved out of this sprint',
+    unscheduled: 'Product backlog',
+    unscheduledNote: 'Candidates for a future sprint, ordered by how refined they already are.',
+    betBar: 'Sprint commitment — still being built' },
+  kanban: { items: 'commitments', window: 'planning window', build: 'Flow', cooldown: 'Slack', size: 'size',
+    scheduled: 'Committed', deferred: 'Deferred',
+    unscheduled: 'Options — not yet pulled',
+    unscheduledNote: 'Options waiting to be pulled, ordered by how ready they already are.',
+    betBar: 'Committed — still being built' },
+  none: { items: 'items', window: 'window', build: 'Planned', cooldown: 'Buffer', size: 'size',
+    scheduled: 'Scheduled', deferred: 'Deferred',
+    unscheduled: 'Unscheduled',
+    unscheduledNote: 'Candidates not yet given dates, ordered by how shaped they already are.',
+    betBar: 'Scheduled — still being built' }
+};
+const FR = FRAMINGS[DATA.framing] || FRAMINGS.none;
+
+/* Branch names come from the facts file (DATA.branches); nothing on the page
+   names a branch the hub did not configure. */
+const BR = DATA.branches || {};
+const PROD_NAME = BR.production ? '<code>' + BR.production + '</code>' : 'the production branch';
+const INTEG_NAME = BR.integration || 'integration';
+
+/* FRAME — DATA.cycle is optional. Without it the frame runs from the earliest
+   start to the latest due (and today) and is labelled as a derived frame, not
+   a commitment. */
+const FRAME = (function () {
+  const c = DATA.cycle;
+  if (c && c.start && (c.cooldownEnd || c.buildEnd)) {
+    const end = c.cooldownEnd || c.buildEnd;
+    return { start: c.start, buildEnd: c.buildEnd || end,
+      cooldownStart: c.cooldownStart || null, cooldownEnd: c.cooldownStart ? end : null,
+      end: end, derived: false };
+  }
+  const dates = [DATA.asOf];
+  DATA.features.forEach(f => { if (f.start) dates.push(f.start); if (f.due) dates.push(f.due); });
+  (DATA.ticks || []).forEach(t => { if (t && t.date) dates.push(t.date); });
+  dates.sort();
+  const last = dates[dates.length - 1];
+  return { start: dates[0], buildEnd: last, cooldownStart: null, cooldownEnd: null, end: last,
+    derived: true, empty: dates.length === 1 };
+})();
+const FRAME_WORD = FRAME.derived ? 'frame' : FR.window;
+
+const WIN_START = ts(FRAME.start);
+const WIN_END = ts(FRAME.end);
+const WIN_SPAN = Math.max(1, WIN_END - WIN_START);
+
+/** THE horizontal positioning function. Every left/width/tick goes through it. */
+function dateToPct(iso) {
+  return ((ts(iso) - WIN_START) / WIN_SPAN) * 100;
+}
+function clampPct(p) { return Math.max(0, Math.min(100, p)); }
+function pct(p) { return clampPct(p).toFixed(3) + '%'; }
+
+function fmt(iso) {
+  const d = new Date(ts(iso));
+  return MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate();
+}
+function fmtFull(iso) {
+  return fmt(iso) + ', ' + new Date(ts(iso)).getUTCFullYear();
+}
+function daysBetween(a, b) { return Math.round((ts(b) - ts(a)) / DAY_MS); }
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+
+/* ============================================================================
+   LOOKUP TABLES
+   ============================================================================ */
+
+const LANES = [
+  { id: 'shipped',   label: 'Already shipped',            rail: 'shipped',  pill: 'shipped',
+    note: 'On ' + PROD_NAME + ' and verified by content presence, not by a ticked task.' },
+  { id: 'inflight',  label: 'In flight',                  rail: 'progress', pill: 'progress',
+    note: 'Built or nearly so. What stands between these and production is merging, ops and sign-off — not more feature work.' },
+  { id: 'scheduled', label: FR.scheduled,                rail: 'planned',  pill: 'planned',
+    note: 'Given real dates. Read these against the risk panel above before treating the dates as settled.' },
+  { id: 'deferred',  label: FR.deferred,                 rail: 'backlog',  pill: 'backlog',
+    note: 'Off the board on purpose, each with a named condition for re-entry.' },
+  { id: 'backlog',   label: FR.unscheduled,              rail: 'backlog',  pill: 'backlog',
+    note: FR.unscheduledNote }
+];
+
+const BAR_META = {
+  commit: { cls: 'b-commit', status: 'commit', label: 'In flight — built, needs merge/ops' },
+  ready:  { cls: 'b-ready',  status: 'ready',  label: 'Ready to merge / sign off' },
+  bet:    { cls: 'b-bet',    status: 'bet',    label: FR.betBar }
+};
+
+const VERDICT_META = {
+  'not-started': { label: 'Not started', cls: 'v-not-started' },
+  'branch-only': { label: 'Branch only', cls: 'v-branch-only' },
+  'in-develop':  { label: 'In ' + INTEG_NAME, cls: 'v-in-develop' },
+  'released':    { label: 'Released',    cls: 'v-released' },
+  'superseded':  { label: 'Superseded',  cls: 'v-superseded' },
+  'reverted':    { label: 'Reverted',    cls: 'v-reverted' }
+};
+
+const CONFLICT_KIND = {
+  capacity: 'Capacity',
+  stall:    'Stall',
+  unshaped: 'Unshaped',
+  overlap:  'Overlap',
+  phantom:  'Phantom'
+};
+
+/* ============================================================================
+   DERIVED PREDICATES — computed per feature, never stored in DATA.
+   ============================================================================ */
+
+function isBlocked(f) {
+  return (f.flags || []).some(fl => fl.kind === 'blocked');
+}
+/* Movement is only known against an earlier-day run. With stall detection off,
+   or no previous tip, it is 'unknown' — never silently 'moved'. Otherwise an
+   explicit `stalled` boolean wins, else an unchanged tip since last run. */
+function branchState(b) {
+  if (DATA.stallDetection === false) return 'unknown';   /* no earlier-day run to compare */
+  if (!b.prevTip) return 'unknown';                       /* branch new since the last run */
+  if (typeof b.stalled === 'boolean') return b.stalled ? 'stalled' : 'moved';
+  return b.prevTip === b.tip ? 'stalled' : 'moved';
+}
+function branchStalled(b) { return branchState(b) === 'stalled'; }
+function isStalled(f) {
+  return ((f.git && f.git.branches) || []).some(branchStalled);
+}
+function isUnshaped(f) {
+  return f.hill < 0.45;
+}
+function hillState(f) {
+  if (isBlocked(f)) return { cls: 'blocked', label: 'Blocked, not idle' };
+  if (f.hill >= 0.995) return { cls: 'downhill', label: 'Done & shipped' };
+  if (f.hill > 0.55) return { cls: 'downhill', label: 'Downhill' };
+  if (f.hill >= 0.45) return { cls: 'peak', label: 'At the peak' };
+  if (f.hill <= 0.05) return { cls: 'uphill', label: 'Not yet shaped' };
+  return { cls: 'uphill', label: 'Uphill' };
+}
+function laneMeta(id) {
+  return LANES.find(l => l.id === id) || { id: id, label: id, rail: 'backlog', pill: 'backlog', note: '' };
+}
+function hillFill(f) {
+  if (isBlocked(f)) return 'var(--ds-danger)';
+  const m = { shipped: 'var(--ds-success)', inflight: 'var(--ds-warning)', scheduled: 'var(--ds-info)', deferred: 'var(--ds-muted)', backlog: 'var(--ds-muted)' };
+  return m[f.lane] || 'var(--ds-muted)';
+}
+
+/* Unique DOM key per feature, collision-safe even if two rows share an id. */
+const KEYS = new Map();
+(function assignKeys() {
+  const seen = new Map();
+  DATA.features.forEach((f, i) => {
+    const base = String(f.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || ('f' + i);
+    const n = (seen.get(base) || 0) + 1;
+    seen.set(base, n);
+    KEYS.set(f, n === 1 ? base : base + '-' + n);
+  });
+})();
+function keyOf(f) { return KEYS.get(f); }
+function featureByKey(k) { return DATA.features.find(f => keyOf(f) === k); }
+
+/* ============================================================================
+   HILL GEOMETRY — the dot is solved on the same cubic path the SVG draws.
+   ============================================================================ */
+
+const HILL_PATH = 'M2,36 C 25,36 25,4 50,4 C 75,4 75,36 98,36';
+function bez(p0, p1, p2, p3, t) {
+  const m = 1 - t;
+  return m*m*m*p0 + 3*m*m*t*p1 + 3*m*t*t*p2 + t*t*t*p3;
+}
+function hillPoint(h) {
+  const v = Math.max(0, Math.min(1, Number(h) || 0));
+  if (v <= 0.5) {
+    const t = v / 0.5;
+    return { x: bez(2, 25, 25, 50, t), y: bez(36, 36, 4, 4, t) };
+  }
+  const t = (v - 0.5) / 0.5;
+  return { x: bez(50, 75, 75, 98, t), y: bez(4, 4, 36, 36, t) };
+}
+function hillSVG(f) {
+  const p = hillPoint(f.hill);
+  const st = hillState(f);
+  return '<svg viewBox="0 0 100 40" width="70" height="28" role="img" aria-label="Hill position: ' +
+    st.label + ', ' + Math.round((Number(f.hill) || 0) * 100) + ' percent along">' +
+    '<path d="' + HILL_PATH + '" fill="none" stroke="var(--ds-border)" stroke-width="2.5"/>' +
+    '<circle cx="' + p.x.toFixed(2) + '" cy="' + p.y.toFixed(2) + '" r="3.4" fill="' + hillFill(f) + '"/>' +
+    '</svg>';
+}
+
+/* ============================================================================
+   SELF-CHECK
+   ============================================================================ */
+
+function selfCheck() {
+  const problems = [];
+  DATA.features.forEach(f => {
+    const tag = f.id + ' ' + f.title;
+    if (f.start && f.due && ts(f.due) < ts(f.start)) {
+      problems.push(tag + ': due (' + f.due + ') precedes start (' + f.start + ').');
+    }
+    if (f.barKind && f.barKind !== 'none') {
+      if (!f.start || !f.due) {
+        problems.push(tag + ': barKind "' + f.barKind + '" but start/due missing — no bar will render.');
+      } else {
+        const l = dateToPct(f.start), r = dateToPct(f.due);
+        if (l < 0 || r > 100) {
+          problems.push(tag + ': bar falls outside the ' + FRAME_WORD + ' (' + l.toFixed(1) + '% → ' + r.toFixed(1) + '%); it renders clamped.');
+        }
+      }
+    }
+    if (f.tasks && f.tasks.done > f.tasks.total) {
+      problems.push(tag + ': tasks.done (' + f.tasks.done + ') exceeds tasks.total (' + f.tasks.total + ').');
+    }
+    if (f.hill < 0 || f.hill > 1) problems.push(tag + ': hill ' + f.hill + ' is outside 0–1.');
+    if (!VERDICT_META[f.git && f.git.verdict]) problems.push(tag + ': unknown git.verdict "' + (f.git && f.git.verdict) + '".');
+    if (!laneMeta(f.lane).note && !LANES.some(l => l.id === f.lane)) problems.push(tag + ': unknown lane "' + f.lane + '".');
+  });
+  if (ts(DATA.asOf) < WIN_START || ts(DATA.asOf) > WIN_END) {
+    problems.push('asOf (' + DATA.asOf + ') is outside the ' + FRAME_WORD + '; the today line renders clamped to the edge.');
+  }
+  DATA.conflicts.forEach(c => {
+    (c.items || []).forEach(id => {
+      if (!DATA.features.some(f => String(f.id) === String(id))) {
+        problems.push('conflict "' + c.title + '" references unknown feature id "' + id + '".');
+      }
+    });
+  });
+
+  problems.forEach(p => console.assert(false, 'roadmap self-check: ' + p));
+  if (problems.length) {
+    console.warn('roadmap self-check found ' + problems.length + ' problem(s):\n• ' + problems.join('\n• '));
+    const el = document.getElementById('selfcheck');
+    el.hidden = false;
+    el.innerHTML = '<strong>Self-check: ' + plural(problems.length, 'problem') + ' in DATA.</strong> ' +
+      problems.map(esc).join(' — ') + ' See the console for the full list.';
+  }
+  return problems;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ============================================================================
+   1. HEADER + CYCLE STRIP
+   ============================================================================ */
+
+function renderHeader() {
+  document.getElementById('eyebrow').innerHTML = DATA.meta.eyebrow;
+  document.getElementById('page-title').textContent = DATA.meta.title;
+  document.getElementById('subtitle').innerHTML = DATA.meta.subtitle;
+
+  const c = FRAME;
+  document.getElementById('risk-note').innerHTML =
+    'Collisions found this run — shared deadlines, stalled branches, unshaped ' + FR.items +
+    ' with dates. Each one is written into <code>DATA.conflicts</code> by whoever cut the page; ' +
+    'every feature it names is checked against the rows below, and an unknown id is flagged.';
+  if (c.empty) {
+    document.getElementById('cycle-strip').innerHTML =
+      '<div class="seg build"><span class="k">No dated items yet</span><span class="v">Nothing carries a start or due date</span></div>' +
+      '<div class="seg today"><span class="k">As of</span><span class="v">' + fmtFull(DATA.asOf) + '</span></div>';
+    return;
+  }
+  const elapsed = daysBetween(c.start, DATA.asOf);
+  const today = { cls: 'today', k: 'As of · day ' + (elapsed + 1) + ' of ' + (daysBetween(c.start, c.end) + 1), v: fmtFull(DATA.asOf) };
+  const segs = c.derived
+    ? [{ cls: 'build', k: 'Frame · derived from dated items · ' + plural(daysBetween(c.start, c.end), 'day'), v: fmt(c.start) + ' – ' + fmtFull(c.end) }, today]
+    : [{ cls: 'build', k: FR.build + ' · ' + plural(daysBetween(c.start, c.buildEnd), 'day'), v: fmt(c.start) + ' – ' + fmtFull(c.buildEnd) }]
+        .concat(c.cooldownStart
+          ? [{ cls: 'cooldown', k: FR.cooldown + ' · ' + plural(daysBetween(c.cooldownStart, c.cooldownEnd), 'day'), v: fmt(c.cooldownStart) + ' – ' + fmtFull(c.cooldownEnd) }]
+          : [], [today]);
+  document.getElementById('cycle-strip').innerHTML = segs.map(s =>
+    '<div class="seg ' + s.cls + '"><span class="k">' + s.k + '</span><span class="v">' + s.v + '</span></div>'
+  ).join('');
+}
+
+/* ============================================================================
+   SCOREBOARD — every tile is a reduce over DATA.features / DATA.releases.
+   ============================================================================ */
+
+function renderScoreboard() {
+  const F = DATA.features;
+  const byLane = id => F.filter(f => f.lane === id).length;
+  const tasksDone = F.reduce((a, f) => a + ((f.tasks && f.tasks.done) || 0), 0);
+  const tasksTotal = F.reduce((a, f) => a + ((f.tasks && f.tasks.total) || 0), 0);
+  const allBranches = F.reduce((a, f) => a.concat((f.git && f.git.branches) || []), []);
+  const stalledBranches = allBranches.filter(branchStalled).length;
+  const unknownBranches = allBranches.filter(b => branchState(b) === 'unknown').length;
+  const stallTile = DATA.stallDetection === false
+    ? { n: 'n/a', k: 'Stalled · unknown this run', cls: '' }
+    : { n: stalledBranches, k: 'Stalled branches' + (unknownBranches ? ' · ' + unknownBranches + ' unknown' : ''), cls: 'is-blocked' };
+  const opsItems = F.reduce((a, f) => a + ((f.git && f.git.unverifiable) || []).length, 0);
+
+  const tiles = [
+    { n: F.length, k: 'Features tracked', cls: '' },
+    { n: byLane('shipped'), k: 'Shipped', cls: 'is-ok' },
+    { n: byLane('inflight'), k: 'In flight', cls: 'is-warn' },
+    { n: byLane('scheduled'), k: 'Scheduled', cls: 'is-plan' },
+    { n: F.filter(isBlocked).length, k: 'Blocked', cls: 'is-blocked' },
+    stallTile,
+    { n: F.filter(isUnshaped).length, k: 'Unshaped · hill < 0.45', cls: 'is-plan' },
+    { n: tasksTotal ? Math.round(tasksDone / tasksTotal * 100) + '%' : 'n/a', k: 'Tasks ticked (claimed)', cls: '' },
+    { n: opsItems, k: 'Ops, unverifiable', cls: '' },
+    { n: DATA.releases.length, k: 'Releases', cls: 'is-ok' }
+  ];
+  document.getElementById('scoreboard').innerHTML = tiles.map(t =>
+    '<div class="stat ' + t.cls + '"><span class="n">' + t.n + '</span><span class="k">' + t.k + '</span></div>'
+  ).join('');
+}
+
+/* ============================================================================
+   2. RISK & CONFLICT PANEL
+   ============================================================================ */
+
+function renderConflicts() {
+  const list = DATA.conflicts || [];
+  document.getElementById('risk-count').textContent =
+    list.length ? plural(list.length, 'conflict') + ' detected' : 'clean run';
+
+  const el = document.getElementById('conflicts');
+  if (!list.length) {
+    el.innerHTML = '<p class="callout ok"><strong>No conflicts detected this run.</strong> ' +
+      'Checked as of ' + fmtFull(DATA.asOf) + ' across ' + plural(DATA.features.length, 'feature') +
+      '. This section is always rendered — an empty risk panel is a finding, not an omission.</p>';
+    return;
+  }
+
+  el.innerHTML = list.map(c => {
+    const kind = CONFLICT_KIND[c.kind] || c.kind;
+    const items = (c.items || []).map(id => {
+      const f = DATA.features.find(x => String(x.id) === String(id));
+      const label = f ? f.id + ' · ' + f.title : String(id);
+      return f
+        ? '<a class="itemlink" href="#feature-' + keyOf(f) + '">' + esc(label) + '</a>'
+        : '<span class="itemlink">' + esc(label) + ' (unknown)</span>';
+    }).join('');
+    return '<article class="conflict k-' + esc(c.kind) + '">' +
+      '<div class="conflict-head">' +
+        '<span class="kind">' + esc(kind) + '</span>' +
+        '<h3>' + c.title + '</h3>' +
+        (c.date ? '<span class="when">' + fmtFull(c.date) + '</span>' : '') +
+      '</div>' +
+      '<p>' + c.text + '</p>' +
+      (items ? '<div class="conflict-items">' + items + '</div>' : '') +
+    '</article>';
+  }).join('');
+}
+
+/* ============================================================================
+   3. TIMELINE — all geometry via dateToPct().
+   ============================================================================ */
+
+function tickList() {
+  const c = FRAME;
+  const seed = [
+    { date: c.start, label: fmt(c.start) + ' · ' + FRAME_WORD + ' start', kind: 'plain' },
+    { date: DATA.asOf, label: fmt(DATA.asOf) + ' · today', kind: 'today' }
+  ].concat(DATA.ticks || [],
+    c.cooldownStart ? [{ date: c.cooldownStart, label: fmt(c.cooldownStart) + ' · ' + FR.cooldown.toLowerCase(), kind: 'cooldown' }] : [],
+    [{ date: c.end, label: fmt(c.end) + ' · ' + FRAME_WORD + ' end', kind: 'plain' }]);
+
+  const seen = new Set();
+  return seed
+    .filter(t => t && t.date)
+    .filter(t => { if (seen.has(t.date)) return false; seen.add(t.date); return true; })
+    .sort((a, b) => ts(a.date) - ts(b.date))
+    .map(t => ({ date: t.date, label: t.label || fmt(t.date), kind: t.kind || 'plain', p: clampPct(dateToPct(t.date)) }));
+}
+
+const TICK_CLS = { today: 'today-start', cooldown: 'cooldown-start', deadline: 'deadline', plain: '' };
+
+function renderTimeline() {
+  const ticks = tickList();
+  const rows = DATA.features.filter(f => f.start && f.due && f.barKind && f.barKind !== 'none');
+  const todayP = clampPct(dateToPct(DATA.asOf));
+  const coolP = FRAME.cooldownStart ? clampPct(dateToPct(FRAME.cooldownStart)) : null;
+
+  if (FRAME.empty) {
+    document.getElementById('timeline-count').textContent = 'no dated items yet';
+    document.getElementById('gantt').innerHTML =
+      '<p class="gcaption">No dated items yet — nothing carries a start and a due date, so there is nothing to plot.</p>';
+    document.getElementById('gantt-legend').innerHTML = '';
+    return;
+  }
+  document.getElementById('timeline-count').textContent =
+    (FRAME.derived ? 'frame ' : '') + fmt(FRAME.start) + ' – ' + fmtFull(FRAME.end) + ' · ' +
+    plural(rows.length, 'dated row') + ' · bar width and position are proportional to actual days';
+
+  const tickHTML = ticks.map(t => {
+    const tail = t.p > 90;
+    const cls = ['gtick', TICK_CLS[t.kind] || '', tail ? 'tail' : ''].filter(Boolean).join(' ');
+    const pos = tail ? 'right:' + pct(100 - t.p) : 'left:' + pct(t.p);
+    return '<span class="' + cls + '" style="' + pos + '">' + esc(t.label) + '</span>';
+  }).join('');
+
+  const head = '<div class="gticks"><div class="spacer"></div><div class="tickrow">' + tickHTML + '</div></div>';
+
+  const body = rows.map(f => {
+    const bar = BAR_META[f.barKind] || BAR_META.bet;
+    const left = clampPct(dateToPct(f.start));
+    const right = clampPct(dateToPct(f.due));
+    const width = Math.max(0, right - left);
+    const span = daysBetween(f.start, f.due);
+    const lm = laneMeta(f.lane);
+    const st = hillState(f);
+
+    return '<div class="grow">' +
+      '<div class="gname"><a class="card-title" href="#feature-' + keyOf(f) + '">' + esc(f.title) + '</a>' +
+        '<span class="id">' + esc(f.id) + ' · ' + esc(lm.label) + '</span>' +
+        '<span class="gstatus ' + bar.status + '">' + esc(st.label) + (isStalled(f) ? ' · stalled' : '') + '</span>' +
+      '</div>' +
+      '<div class="gtrackwrap">' +
+        (coolP !== null ? '<div class="gzone-cooldown" style="left:' + pct(coolP) + '"></div>' : '') +
+        '<div class="gtoday" style="left:' + pct(todayP) + '"></div>' +
+        '<span class="gtoday-label" style="left:' + pct(todayP) + '">today</span>' +
+        '<div class="bar ' + bar.cls + '" style="left:' + pct(left) + ';width:' + pct(width) + '" ' +
+          'title="' + esc(f.id + ': ' + fmt(f.start) + ' – ' + fmt(f.due)) + '"></div>' +
+      '</div>' +
+    '</div>' +
+    '<p class="gcaption"><span class="dates">' + fmt(f.start) + ' – ' + fmt(f.due) +
+      ' · ' + plural(span, 'day') + (f.appetite ? ' · ' + FR.size + ' ' + esc(f.appetite) : '') + '</span><br>' + f.summary + '</p>';
+  }).join('');
+
+  document.getElementById('gantt').innerHTML = head + (rows.length ? body :
+    '<div class="grow"><div class="gname">—</div><div class="gtrackwrap"></div></div>' +
+    '<p class="gcaption">No feature carries both a start and a due date, so there is nothing to plot.</p>');
+
+  // Legend lists only the bar kinds actually present.
+  const kindsPresent = Object.keys(BAR_META).filter(k => rows.some(f => f.barKind === k));
+  const legend = kindsPresent.map(k =>
+    '<span><i class="swatch ' + BAR_META[k].status + '"></i> ' + BAR_META[k].label + '</span>'
+  ).concat([
+    '<span><i class="swatch todayline"></i> Today — ' + fmtFull(DATA.asOf) + '</span>'
+  ], FRAME.cooldownStart
+    ? ['<span><i class="swatch cooldownzone"></i> ' + FR.cooldown + ' — from ' + fmtFull(FRAME.cooldownStart) + '</span>']
+    : []).join('');
+  document.getElementById('gantt-legend').innerHTML = legend;
+  layoutTicks();
+}
+
+/* Dates that land on consecutive days make tick labels collide at any track
+   width. Rather than guess a character width, stack them after
+   layout from measured geometry: each label goes in the first row whose last
+   occupant ends before it starts. Nothing here is hand-positioned — the
+   horizontal position is still dateToPct(); only the row is measured. */
+const TICK_ROW_PX = 17;
+
+function layoutTicks() {
+  const row = document.querySelector('#gantt .tickrow');
+  if (!row) return;
+  const spans = Array.from(row.querySelectorAll('.gtick'));
+  if (!spans.length) return;
+  const base = row.getBoundingClientRect();
+  const rowEnd = [];
+  spans.forEach(sp => {
+    sp.style.top = '0px';
+    const r = sp.getBoundingClientRect();
+    const left = r.left - base.left;
+    const right = left + r.width;
+    let i = 0;
+    while (rowEnd[i] !== undefined && rowEnd[i] > left - 6) i++;
+    rowEnd[i] = right;
+    sp.style.top = (i * TICK_ROW_PX) + 'px';
+  });
+  row.style.height = ((rowEnd.length - 1) * TICK_ROW_PX + 22) + 'px';
+}
+
+let tickResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(tickResizeTimer);
+  tickResizeTimer = setTimeout(layoutTicks, 120);
+});
+
+
+/* ============================================================================
+   4. FEATURE CARDS
+   ============================================================================ */
+
+const PREDS = [
+  { id: 'blocked',  label: 'Blocked',  test: isBlocked },
+  { id: 'stalled',  label: 'Stalled',  test: isStalled },
+  { id: 'unshaped', label: 'Unshaped', test: isUnshaped }
+];
+
+const STORE_KEY = 'roadmap.filters.v1';
+let laneFilter = 'all';
+let activePreds = new Set();
+
+function loadFilters() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s && typeof s.lane === 'string' && (s.lane === 'all' || LANES.some(l => l.id === s.lane))) laneFilter = s.lane;
+    if (s && Array.isArray(s.preds)) activePreds = new Set(s.preds.filter(p => PREDS.some(x => x.id === p)));
+  } catch (e) {
+    laneFilter = 'all';
+    activePreds = new Set();
+  }
+}
+function saveFilters() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ lane: laneFilter, preds: Array.from(activePreds) }));
+  } catch (e) { /* private mode, blocked storage, quota — filters simply do not persist */ }
+}
+
+function passes(f) {
+  if (laneFilter !== 'all' && f.lane !== laneFilter) return false;
+  if (activePreds.size) {
+    const anyMatch = PREDS.some(p => activePreds.has(p.id) && p.test(f));
+    if (!anyMatch) return false;
+  }
+  return true;
+}
+
+function renderFilters() {
+  const laneBtns = [{ id: 'all', label: 'All lanes', n: DATA.features.length }]
+    .concat(LANES.map(l => ({ id: l.id, label: l.label.replace(/<[^>]+>/g, ''), n: DATA.features.filter(f => f.lane === l.id).length })))
+    .filter(b => b.id === 'all' || b.n > 0);
+  document.getElementById('lane-filter').innerHTML = laneBtns.map(b =>
+    '<button class="chip" type="button" data-lane="' + b.id + '" aria-pressed="' + (laneFilter === b.id) + '">' +
+    esc(b.label) + '<span class="cnt">' + b.n + '</span></button>'
+  ).join('');
+
+  document.getElementById('pred-filter').innerHTML = PREDS.map(p =>
+    '<button class="chip" type="button" data-pred="' + p.id + '" aria-pressed="' + activePreds.has(p.id) + '">' +
+    p.label + '<span class="cnt">' + DATA.features.filter(p.test).length + '</span></button>'
+  ).join('');
+}
+
+function flagHTML(fl) {
+  const cls = fl.kind === 'blocked' ? 'blocked' : (fl.kind === 'resolved' ? 'resolved' : '');
+  return '<div class="flag ' + cls + '"><strong>' + fl.title + '</strong> ' + fl.text + '</div>';
+}
+
+function gitHTML(f) {
+  const g = f.git || {};
+  const v = VERDICT_META[g.verdict] || { label: String(g.verdict || 'unknown'), cls: 'v-not-started' };
+  const branches = g.branches || [];
+  const table = branches.length
+    ? '<div class="branch-scroll"><table class="branches">' +
+        '<thead><tr><th>Repo</th><th>Ref</th><th>Tip</th><th>Tip date</th><th>Ahead</th><th>Behind</th><th>Movement</th></tr></thead><tbody>' +
+        branches.map(b => {
+          const state = branchState(b);
+          const st = state === 'stalled';
+          const age = b.tipDate ? daysBetween(b.tipDate, DATA.asOf) : null;
+          const last = age !== null ? 'last commit ' + plural(age, 'day') + ' ago' : 'no tip date';
+          const move = state === 'stalled'
+            ? 'stalled' + (age !== null ? ' · ' + plural(age, 'day') : '')
+            : (state === 'moved' ? 'moved · ' + last : 'movement unknown · ' + last);
+          return '<tr><td>' + esc(b.repo) + '</td><td>' + esc(b.ref) + '</td><td>' + esc(b.tip) + '</td>' +
+            '<td>' + (b.tipDate ? fmt(b.tipDate) : '—') + '</td>' +
+            '<td>' + (b.ahead != null ? b.ahead : '—') + '</td>' +
+            '<td>' + (b.behind != null ? b.behind : '—') + '</td>' +
+            '<td class="' + (st ? 'warn' : '') + '">' + esc(move) + '</td></tr>';
+        }).join('') +
+      '</tbody></table></div>'
+    : '<p class="taskmeta">No branch in any repo.</p>';
+
+  const unv = (g.unverifiable || []).length
+    ? '<div class="unverifiable"><h5>Not verifiable from git</h5><ul>' +
+        g.unverifiable.map(u => '<li>' + u + '</li>').join('') + '</ul></div>'
+    : '';
+
+  return '<div class="span-all"><h4>Verification</h4><div class="gitblock">' +
+    '<div class="gitmeta">' +
+      '<span class="verdict ' + v.cls + '">' + esc(v.label) + '</span>' +
+      (g.release ? '<span class="pill priority">' + esc(g.release) + '</span>' : '') +
+      (g.method ? '<span class="method">' + esc(g.method) + '</span>' : '') +
+    '</div>' +
+    (g.evidence ? '<div class="evidence">' + g.evidence + '</div>' : '') +
+    table + unv +
+  '</div></div>';
+}
+
+function cardHTML(f) {
+  const lm = laneMeta(f.lane);
+  const st = hillState(f);
+  const key = keyOf(f);
+  const t = f.tasks || { done: 0, total: 0 };
+  const tpct = t.total ? clampPct(t.done / t.total * 100) : 0;
+
+  const window_ = (f.start && f.due)
+    ? fmt(f.start) + ' – ' + fmt(f.due) + ' · ' + plural(daysBetween(f.start, f.due), 'day')
+    : (f.due ? 'due ' + fmt(f.due) : 'no dates');
+
+  const alarms = []
+    .concat(isBlocked(f) ? ['blocked'] : [])
+    .concat(isStalled(f) ? ['stalled'] : [])
+    .concat(isUnshaped(f) ? ['unshaped'] : [])
+    .map(a => '<span class="pill alarm">' + a + '</span>').join('');
+
+  return '<details class="card" id="feature-' + key + '" data-key="' + key + '">' +
+    '<summary>' +
+      '<div class="rail ' + lm.rail + '"></div>' +
+      '<div class="card-head-main">' +
+        '<div class="card-title-row">' +
+          '<span class="card-id">' + esc(f.id) + '</span>' +
+          '<a class="card-title" href="#feature-' + key + '" data-permalink="' + key + '">' + esc(f.title) + '</a>' +
+        '</div>' +
+        '<p class="card-summary">' + f.summary + '</p>' +
+      '</div>' +
+      '<div class="chips">' +
+        alarms +
+        (f.appetite ? '<span class="pill priority">' + esc(f.appetite) + '</span>' : '') +
+        '<span class="pill ' + lm.pill + '">' + esc(lm.label.replace(/<[^>]+>/g, '')) + ' · ' + esc(window_) + '</span>' +
+      '</div>' +
+    '</summary>' +
+    '<div class="card-body">' +
+      '<div><h4>Who it helps</h4><p>' + f.who + '</p></div>' +
+      '<div><h4>Hill position</h4><div class="hill-wrap">' + hillSVG(f) +
+        '<div class="hill-label"><span class="state ' + st.cls + '">' + st.label + '</span>' +
+        (f.hillNote ? ' — ' + f.hillNote : '') + '</div></div>' +
+        (t.total
+          ? '<p class="taskmeta" style="margin-top:.55rem">' + t.done + ' / ' + t.total + ' tasks · ' + Math.round(tpct) + '%</p>' +
+            '<div class="taskbar"><span style="width:' + pct(tpct) + '"></span></div>'
+          : '<p class="taskmeta" style="margin-top:.55rem">No task list yet.</p>') +
+      '</div>' +
+      '<div><h4>Remaining actions</h4>' +
+        ((f.remaining || []).length
+          ? '<ul>' + f.remaining.map(r => '<li>' + r + '</li>').join('') + '</ul>'
+          : '<p>Nothing outstanding on this scope.</p>') +
+      '</div>' +
+      gitHTML(f) +
+      ((f.flags || []).length ? '<div class="span-all">' + f.flags.map(flagHTML).join('') + '</div>' : '') +
+    '</div>' +
+  '</details>';
+}
+
+function renderLanes() {
+  const pool = DATA.features.filter(passes);
+  document.getElementById('features-count').textContent =
+    pool.length === DATA.features.length
+      ? plural(DATA.features.length, 'feature') + ' across ' + plural(LANES.filter(l => DATA.features.some(f => f.lane === l.id)).length, 'lane')
+      : pool.length + ' of ' + DATA.features.length + ' features shown';
+
+  const el = document.getElementById('lanes');
+  if (!pool.length) {
+    el.innerHTML = '<p class="empty">No feature matches this filter. ' +
+      plural(DATA.features.length, 'feature') + ' total — clear the chips above to see them.</p>';
+    return;
+  }
+
+  el.innerHTML = LANES.map(l => {
+    const all = DATA.features.filter(f => f.lane === l.id);
+    const rows = pool.filter(f => f.lane === l.id);
+    if (!rows.length) return '';
+    const count = rows.length === all.length
+      ? plural(all.length, 'feature')
+      : rows.length + ' of ' + plural(all.length, 'feature') + ' shown';
+    const blocked = rows.filter(isBlocked).length;
+    return '<section>' +
+      '<div class="section-head">' +
+        '<h2>' + l.label + '</h2>' +
+        '<span class="count">' + count + (blocked ? ' · ' + blocked + ' blocked' : '') + '</span>' +
+      '</div>' +
+      (l.note ? '<p class="section-note">' + l.note + '</p>' : '') +
+      '<div class="cards">' + rows.map(cardHTML).join('') + '</div>' +
+    '</section>';
+  }).join('');
+
+  wireCards();
+}
+
+/* ============================================================================
+   5. RELEASES — two-tier, newest first.
+   ============================================================================ */
+
+function renderReleases() {
+  const rel = (DATA.releases || []).slice().sort((a, b) => ts(b.date) - ts(a.date));
+  const commits = rel.reduce((a, r) => a + (r.commitCount || 0), 0);
+  document.getElementById('releases-count').textContent =
+    rel.length
+      ? plural(rel.length, 'release') + ' · ' + plural(commits, 'commit') +
+        ' · latest ' + fmtFull(rel[0].date)
+      : 'none recorded';
+
+  const el = document.getElementById('releases');
+  if (!rel.length) {
+    el.innerHTML = '<p class="empty">No release recorded for this window.</p>';
+    return;
+  }
+
+  el.innerHTML = rel.map((r, i) => {
+    const groups = r.groups || {};
+    const lineCount = Object.keys(groups).reduce((a, k) => a + (groups[k] || []).length, 0);
+    const tags = Object.keys(r.tags || {}).map(k => k + ' ' + r.tags[k]).join(' · ');
+    return '<details class="card release" id="release-' + esc(String(r.name).toLowerCase().replace(/[^a-z0-9]+/g, '-')) + '">' +
+      '<summary>' +
+        '<div class="rail shipped"></div>' +
+        '<div class="card-head-main">' +
+          '<div class="card-title-row">' +
+            '<span class="rel-name">' + esc(r.version || r.name) + '</span>' +
+            (r.version && r.name && r.name !== r.version ? '<span class="rel-date">' + esc(r.name) + '</span>' : '') +
+            '<span class="rel-date">' + fmtFull(r.date) + '</span>' +
+            (i === 0 ? '<span class="pill shipped">latest</span>' : '') +
+          '</div>' +
+          '<p class="rel-headline">' + r.headline + '</p>' +
+        '</div>' +
+        '<div class="chips">' +
+          (r.repos || []).map(x => '<span class="pill priority">' + esc(x) + '</span>').join('') +
+          '<span class="pill ready">' + plural(r.commitCount || 0, 'commit') + '</span>' +
+        '</div>' +
+      '</summary>' +
+      '<div class="rel-body">' +
+        Object.keys(groups).filter(k => (groups[k] || []).length).map(k =>
+          '<div class="relgroup"><h5>' + esc(k) + ' · ' + plural(groups[k].length, 'line') + '</h5><ul>' +
+          groups[k].map(line => '<li>' + line + '</li>').join('') + '</ul></div>'
+        ).join('') +
+        '<div class="evidence">' +
+          plural(r.commitCount || 0, 'commit') + ' · ' + plural(lineCount, 'changelog line') +
+          ' · ' + plural((r.repos || []).length, 'repo') +
+          (tags ? ' · tags ' + esc(tags) : '') +
+          '<br>' + Object.keys(r.shas || {}).map(k => k + ' ' + r.shas[k]).join(' · ') +
+          (r.notesUrl
+            ? '<br>Release notes: <a href="' + esc(r.notesUrl) + '">' + esc(r.notesUrl) + '</a>'
+            : (r.notes ? '<br>Release notes in the hub: <code>' + esc(r.notes) + '</code>' : '')) +
+        '</div>' +
+      '</div>' +
+    '</details>';
+  }).join('');
+}
+
+/* ============================================================================
+   6. FOOTER
+   ============================================================================ */
+
+function renderFooter() {
+  document.getElementById('methodology').innerHTML = (DATA.methodology || []).map(s =>
+    '<h3>' + s.heading + '</h3><ul>' + s.items.map(i => '<li>' + i + '</li>').join('') + '</ul>'
+  ).join('') +
+  '<h3>Provenance</h3><ul><li>Rendered as of <strong>' + fmtFull(DATA.asOf) + '</strong> over ' +
+  plural(DATA.features.length, 'feature') + ', ' + plural(DATA.releases.length, 'release') + ' and ' +
+  plural(DATA.conflicts.length, 'conflict') + '. ' +
+  (FRAME.derived ? 'Frame derived from dated items (not a commitment) ' : FR.window.charAt(0).toUpperCase() + FR.window.slice(1) + ' ') +
+  fmtFull(FRAME.start) + ' – ' + fmtFull(FRAME.end) + '.</li></ul>';
+}
+
+/* ============================================================================
+   INTERACTION
+   ============================================================================ */
+
+function wireCards() {
+  document.querySelectorAll('a[data-permalink]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      focusFeature(a.dataset.permalink, true);
+    });
+  });
+}
+
+function focusFeature(key, setHash) {
+  const card = document.getElementById('feature-' + key);
+  if (!card) return false;
+  card.open = true;
+  document.querySelectorAll('details.card.is-target').forEach(c => c.classList.remove('is-target'));
+  card.classList.add('is-target');
+  card.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  if (setHash) {
+    try { history.replaceState(null, '', '#feature-' + key); }
+    catch (e) { location.hash = 'feature-' + key; }
+  }
+  return true;
+}
+
+function applyHash() {
+  const h = (location.hash || '').replace(/^#/, '');
+  if (!h.startsWith('feature-')) return;
+  const key = h.slice('feature-'.length);
+  const f = featureByKey(key);
+  if (!f) return;
+  // If the current filter hides the target, reset the filter rather than fail.
+  if (!passes(f)) {
+    laneFilter = 'all';
+    activePreds = new Set();
+    saveFilters();
+    renderFilters();
+    renderLanes();
+  }
+  focusFeature(key, false);
+}
+
+document.getElementById('lane-filter').addEventListener('click', e => {
+  const b = e.target.closest('[data-lane]');
+  if (!b) return;
+  laneFilter = b.dataset.lane;
+  saveFilters();
+  renderFilters();
+  renderLanes();
+});
+
+document.getElementById('pred-filter').addEventListener('click', e => {
+  const b = e.target.closest('[data-pred]');
+  if (!b) return;
+  const id = b.dataset.pred;
+  if (activePreds.has(id)) activePreds.delete(id); else activePreds.add(id);
+  saveFilters();
+  renderFilters();
+  renderLanes();
+});
+
+function setAll(selector, open) {
+  document.querySelectorAll(selector).forEach(d => { d.open = open; });
+}
+document.getElementById('feat-expand').addEventListener('click', () => setAll('#lanes details.card', true));
+document.getElementById('feat-collapse').addEventListener('click', () => setAll('#lanes details.card', false));
+document.getElementById('rel-expand').addEventListener('click', () => setAll('#releases details.card', true));
+document.getElementById('rel-collapse').addEventListener('click', () => setAll('#releases details.card', false));
+
+window.addEventListener('hashchange', applyHash);
+
+/* ============================================================================
+   BOOT
+   ============================================================================ */
+
+loadFilters();
+renderHeader();
+renderScoreboard();
+renderConflicts();
+renderTimeline();
+renderFilters();
+renderLanes();
+renderReleases();
+renderFooter();
+selfCheck();
+applyHash();
+</script>

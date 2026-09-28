@@ -1,0 +1,97 @@
+<title>Fixture — a client note that fails every way it can</title>
+<!--
+  REGRESSION FIXTURE. Not a real note. It is an RTL note (locale fa, dir rtl),
+  so run it with those overrides whatever the hub's own client locale is. Every
+  line here is a failure the verifier must keep catching:
+
+  One-language contract
+    - a second <article data-lang="en">, back after the note went single-language
+    - the client-locale article missing dir="rtl"
+    - a duplicate data-id
+    - the same figure shown twice
+
+  Leaking / bidi
+    - English jargon: endpoint, refactored, pagination, commit
+    - locale jargon (the Persian list): query, database transliterated
+    - a bare commit SHA and a spec identifier in client copy
+    - a version string not wrapped in <bdi dir="ltr">
+    - "·" as a separator next to a <bdi> in the right-to-left article
+
+  Thin copy
+    - no <meta name="release-headline"> for other skills to read
+    - a card in the "new" block with no <p class="benefit"> at all
+    - a card whose benefit is a restated title, under the word floor
+
+  Screenshots
+    - an <img> whose src is a relative path, so it dies in the published page
+    - an <img> with no alt text
+    - an "en" capture inside the fa note
+
+  The PDF-is-the-screen contract
+    - an @page with a paper size, which collapses the two-column cards
+    - no print-color-adjust, so the wash and the card surfaces drop out
+    - no break-inside: avoid
+    - a max-width media query not scoped to `screen`, so it also reflows the PDF
+    - a dark token the print block never resets at matching specificity
+    - no <meta charset="utf-8">, so a file opened from disk prints as mojibake
+
+  The design system (brand-system's check-brand.py)
+    - no BRAND:BEGIN / BRAND:END block at all
+    - colour literals outside the BRAND block
+    - a font-family naming a face directly instead of var(--ds-font-*)
+    - a font-weight no embedded face carries
+    - a literal box-shadow and a literal gradient (effects are brand-owned)
+
+  Run after ANY change to verify-release-notes.py:
+    python "${CLAUDE_SKILL_DIR}/scripts/verify-release-notes.py" --locale fa --dir rtl       "${CLAUDE_SKILL_DIR}/fixtures/leaky-client-note.html"
+  Expected: FAIL, with one line per failure above. A pass means the verifier broke.
+-->
+<style>
+  :root { --ink: #11343a; }
+  body { font-family: Tahoma, sans-serif; font-weight: 300; color: #333333; }
+  .note { box-shadow: 0 2px 8px black; background: linear-gradient(white, silver); }
+  :root:not([data-theme="light"]) { --ink: #e9f5f4; }
+  @media (max-width: 52rem) { .features { grid-template-columns: 1fr; } }
+  @page { size: A4; margin: 17mm; }
+  @media print {
+    .note { display: block; }
+  }
+</style>
+
+<article class="note" data-lang="fa" lang="fa">
+  <h1>نسخه v-2.4.1</h1>
+
+  <section data-block="new">
+    <div class="feature has-shot" data-id="channels">
+      <b>کانال‌ها</b>
+      <figure class="shot" data-shot="channels">
+        <img data-figure="channels" data-locale="en" src="figures/channels--fa.png" alt="">
+      </figure>
+    </div>
+    <div class="feature" data-id="thin">
+      <b>مورد نازک</b>
+      <p class="benefit">خیلی کوتاه.</p>
+    </div>
+    <div class="feature has-shot" data-id="thin">
+      <b>شناسهٔ تکراری</b>
+      <p class="benefit">این کارت همان شناسهٔ کارت بالا را دارد، و تصویرش هم تصویری است که یک‌بار دیگر در همین صفحه نشان داده شده است.</p>
+      <figure class="shot" data-shot="channels">
+        <img data-figure="channels" data-locale="fa" src="data:image/png;base64,iVBORw0KGgo=">
+      </figure>
+    </div>
+  </section>
+
+  <ul>
+    <li data-id="reports"><b>گزارش‌ها</b><span>کوئری دیتابیس بهینه شد.</span></li>
+  </ul>
+  <footer>محصول <bdi dir="ltr">v-2.4.1</bdi> · ۴ شهریور ۱۴۰۵</footer>
+</article>
+
+<article class="note" data-lang="en" lang="en" dir="ltr">
+  <ul>
+    <li data-id="reports">
+      <b>Reports</b>
+      <span>We refactored the reports endpoint and added pagination; see commit 507a990d for spec 042-example-feature.</span>
+    </li>
+  </ul>
+</article>
