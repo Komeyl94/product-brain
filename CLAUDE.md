@@ -56,7 +56,7 @@ remove + re-add it (a plain `update` hits a name mismatch), so avoid renames.
 
 ## What a hub looks like (what the templates build)
 
-Required core: `constitution.md`, `vocabulary.md`. Recommended (graph-assisted): `domains.md`.
+Required core: `constitution.md`, `vocabulary.md`, `DESIGN.md`. Recommended (graph-assisted): `domains.md`.
 Plus: `brain.config.json` (repos + doc types), `docs/<type>/` (extensible; `docs/knowledge/` is required), `workflows/<role>.md`, `graph/` (built by `pb sync`),
 `.claude/settings.json` (plugins, `PYTHONUTF8`, read-only permissions), and optionally `.mcp.json` +
 `.claude/settings.local.example.json` (from the `connect-tools` skill). Tokens live only in the
@@ -77,6 +77,33 @@ out of the hub's Git via `.git/info/exclude` (not a tracked `.gitignore`, becaus
 `.gitignore` and would otherwise skip the clones); a managed `.graphifyignore` makes graphify skip its
 own output while still reading `repos/`. Querying returns chunks via each node's `source_file`. Never
 reintroduce a local-copy/mirror option — it leads to stale code.
+
+## Skill scripts
+
+The `brand-system`, `delivery-roadmap`, `release-notes`, and `update-product-hub` skills each ship
+Python under `skills/<name>/scripts/`; any future skill's scripts follow the same rules:
+
+- **stdlib-only, Python 3.9+.** Optional third-party packages (`fonttools` + `brotli` for font
+  subsetting, `playwright` for browser capture/PDF/render-checks, `PyYAML` for the DESIGN.md
+  frontmatter) degrade with a clear message when absent — never a traceback, never a silent
+  skip that isn't reported.
+- **Find the hub by walking up.** From the current directory (and `--hub <path>` to override),
+  walk parents until one contains `brain.config.json`. That's the hub root every relative path in
+  config is resolved against.
+- **Find sibling skills relative to the script's own path**, not a hardcoded install location:
+  `SKILLS = Path(__file__).resolve().parents[2]` → `SKILLS / "brand-system" / "scripts" / "brand.py"`.
+  This is what makes the same folder work both hub-local (`.claude/skills/<name>/scripts/`) and
+  inside the plugin (`skills/<name>/scripts/`).
+- **`sys.dont_write_bytecode = True`** before any local import, so running a script never leaves a
+  `__pycache__/` behind in a skill folder (or, worse, in a hub someone else's session then reads a
+  stale `.pyc` from).
+- **Every checker ships a failing fixture, and it must be re-run whenever the checker changes.**
+  `check-brand.py` has `fixtures/off-brand.html` / `off-brand-missing-block.html`, which must fail
+  every applicable check; `verify-release-notes.py` has `fixtures/leaky-client-note.html` and
+  `fixtures/hollow-internal-note.md`; `verify-roadmap.py` has `--self-test` against `fixtures/`. A
+  fixture that starts passing means the checker broke, not that the fixture got better — that has
+  happened (a case-insensitive placeholder regex once matched the ordinary word "replace"). Re-run
+  every fixture as part of any change to the script that reads it, not just once when it's added.
 
 ## Deferred — open problems (do not present as solved)
 

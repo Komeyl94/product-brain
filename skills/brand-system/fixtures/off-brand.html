@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Off-brand fixture - must FAIL every check</title>
+<style>
+/* BRAND:BEGIN */
+/* stale on purpose: this content never matches tokens.json brand_css_sha256 */
+:root { --ds-primary: #123456; }
+/* BRAND:END */
+
+/* colour-literal: hex, functional and named colours outside the block */
+body { background: #fdfcdc; color: rgb(7, 59, 76); border-color: tomato; }
+.card { box-shadow: 0 2px 20px oklch(70% 0.1 200 / 0.2); }
+:root { --my-ink: hsl(190 40% 20%); }
+
+/* font-family: a face named directly, a shorthand, and a stack hidden in a custom property */
+h1 { font-family: "Inter", sans-serif; }
+p { font: 400 16px/1.5 Georgia, serif; }
+:root { --my-font: "Segoe UI", system-ui, sans-serif; }
+
+/* font-weight: a weight no brand face embeds, and a relative weight */
+.thin { font-weight: 300; }
+.heavier { font-weight: bolder; }
+
+/* effect-literal: gradients and shadows are brand-owned (var(--ds-wash), var(--ds-shadow-*)) */
+.hero { background: linear-gradient(135deg, var(--ds-primary), var(--ds-accent)); }
+.lift { box-shadow: 0 2px 8px color-mix(in oklab, var(--ds-ink) 20%, transparent); }
+.glow { text-shadow: 0 0 4px var(--ds-primary); filter: drop-shadow(0 1px 2px var(--ds-ink)); }
+
+/* nested rules: a regex that only sees innermost blocks misses this colour */
+.card{color:#ff0000; .inner{}}
+
+/* unknown-token: a --ds-* name brand.css does not define */
+.x { color: var(--ds-brand-special); }
+</style>
+</head>
+<body>
+<h1 style="color: #118ab2; font-family: Arial">Off brand</h1>
+<p class="thin">A comment mentioning #abcdef must NOT be flagged: <!-- #abcdef --></p>
+<div title="a > b" style="color:#00ff00">a quoted &gt; must not hide the style after it</div>
+<svg width="40" height="20"><rect width="40" height="20" fill="#ef476f"/></svg>
+<script>
+  // "fixes #123" in prose is an issue number, not a colour: must not be flagged
+  const note = "fixes #123";
+  const palette = ["#118ab2", "rgba(239, 71, 111, .5)"];
+  const rule = "border: 1px solid #ccc";
+  el.style.background = "#fff";
+</script>
+</body>
+</html>

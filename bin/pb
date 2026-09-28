@@ -49,7 +49,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-CORE_DOCS = ["constitution.md", "vocabulary.md", "domains.md"]
+CORE_DOCS = ["constitution.md", "vocabulary.md", "DESIGN.md", "domains.md"]
 
 # The hub layout (checked by `pb check`). The top level is closed: only these files and folders,
 # plus dot-entries (.claude/, .mcp.json, .gitignore, … — tooling, always allowed) and the repos +

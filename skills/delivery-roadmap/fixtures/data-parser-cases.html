@@ -1,0 +1,17 @@
+<meta charset="utf-8">
+<title>DATA parser cases</title>
+<!-- Fixture for `verify-roadmap.py --self-test`. Each key below sits after a
+     construct that used to truncate the brace matcher. Not a real roadmap. -->
+<script>
+const DATA = {
+  // it's a line comment with an apostrophe and a stray } brace
+  afterLineComment: 'still here',
+  /* a block comment with } and { and an ' apostrophe */
+  afterBlockComment: 'still here',
+  templated: `a } b`,
+  nested: `x${'}'}y`,
+  quoted: 'it\'s {not} a brace',
+  last: true
+};
+const AFTER = { unrelated: '}' };
+</script>
