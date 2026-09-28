@@ -79,6 +79,7 @@ acme-brain/                          ← the hub: its own git repo, single sourc
   DESIGN.md                          product-level design system: brand tokens + artifact styling (CORE, required)
   domains.md                         domain map: area → owner, status, which repos   (recommended, graph-assisted)
   docs/                              extensible, typed knowledge — Markdown-first (multimodal supported)
+    knowledge/                       stable product facts: overview, stakeholders, status, metrics   (required)
     specs/                           authored however the team likes (Spec Kit, RFC, plain MD…)
     decisions/                       ADRs
     meeting-notes/                   ← teams add types like this freely
@@ -90,7 +91,13 @@ acme-brain/                          ← the hub: its own git repo, single sourc
   graph/                             graphify output: graph.json, GRAPH_REPORT.md, graph.html
   repos/                             FULL working clones of the apps — developers work in them here
   .graphifyignore                    managed: graphify skips graph/, keeps repos/
+  .work/                             scratch + command output (git-ignored, never knowledge)
 ```
+
+**The top level is closed.** Nothing but the entries above (plus tooling dot-files) lives there. A
+new kind of content becomes a registered doc type under `docs/`, never a new top-level folder.
+`pb check` lists anything out of place, and the plugin runs it as a Claude Code Stop hook
+(`pb check --hook`, new or changed files only), so drift is caught the moment it's created.
 
 **The hub is the developer's workspace.** Each app is cloned into `repos/<id>` as a full working
 clone (with its own Git remote); developers do their actual work there, alongside the constitution,
@@ -110,6 +117,8 @@ The app repos themselves get **nothing added** — see §8.
 ## 6. The skill lives outside the hub
 
 `brainify` (and any future Product Brain skills) is a **standalone Claude skill**, distributed with the framework (as a plugin / skill bundle), **not** placed inside a team's hub and **not** under a `.specify/` directory.
+
+The same holds for the framework's shared plugins (`plugins/`: `git-workflow`, `guardrails`, `stack-*`). They ship from the Product Brain marketplace, a hub only *enables* them in its committed `.claude/settings.json`, and they reach app repos as session context and Claude hooks, never as files written into those repos. Updating them is a version bump in the framework, not an edit in every hub.
 
 Why:
 
@@ -157,12 +166,12 @@ Consequences for the schema:
        { "id": "backend-api", "url": "git@github.com:acme/backend-api.git", "src": ["app/"] },
        { "id": "web-app",     "url": "git@github.com:acme/web-app.git",     "src": ["src/"] }
      ],
-     "doc_types": ["specs", "decisions", "meeting-notes", "research", "runbooks"],
+     "doc_types": ["knowledge", "specs", "decisions", "meeting-notes", "research", "runbooks"],
      "graph": { "out": "graph/" }
    }
    ```
 
-`doc_types` is the extensibility hook: add a type here and `brainify` recognizes it as a first-class knowledge area.
+`doc_types` is the extensibility hook: add a type here and `brainify` recognizes it as a first-class knowledge area. It is also the *only* sanctioned way to add a folder to a hub. `knowledge` is required in every hub.
 
 ---
 

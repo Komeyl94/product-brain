@@ -9,35 +9,133 @@
      these markers — your changes are overwritten. Edit brain.config.json, or the prose outside
      this block, instead. -->
 
-## Get Product Brain
+## What is this?
 
-This hub is knowledge only — the tooling lives in the framework repo. To work with it:
+One folder that holds what our team knows about the product — principles, vocabulary, specs,
+decisions, meeting notes — next to the code of every app we build. Claude reads all of it, so you
+can ask questions in plain words ("where is checkout implemented?", "why did we choose X?") and get
+answers grounded in our real code and docs. You don't need to know Git or programming to use it.
+
+## Getting started
+
+Works on Windows, macOS and Linux. Do steps 1–3 once; after that it's just step 5.
+
+### 1. Install Git, Python 3 and Claude Code
+
+| | Windows | macOS | Linux |
+|---|---|---|---|
+| **Git** | [Git for Windows](https://git-scm.com/download/win) — keep the defaults (this also gives you **Git Bash**) | `xcode-select --install` (or `brew install git`) | `sudo apt install git` (or your distro's package manager) |
+| **Python 3** | [python.org](https://www.python.org/downloads/) installer — **tick "Add python.exe to PATH"** on the first screen | `brew install python` | Usually preinstalled; otherwise `sudo apt install python3` |
+| **Claude Code** | Claude desktop app (Code tab) or the VS Code extension | Claude desktop app (Code tab) or the VS Code extension | VS Code extension, or the CLI: `curl -fsSL https://claude.ai/install.sh \| bash` |
+
+### 2. Get access to {{CODE_HOST}} and add an SSH key
+
+Ask a teammate to give you access to this hub and the repos below on **{{CODE_HOST}}**. Cloning uses
+SSH by default, so your computer needs an SSH key registered with your {{CODE_HOST}} account.
+
+<details>
+<summary>How to create and add an SSH key (optional — skip if you already have one)</summary>
+
+In a terminal (on Windows: **Git Bash**):
 
 ```bash
-# 1. Get the framework (once, anywhere)
-git clone <product-brain-framework-url> product-brain
-product-brain/bin/install-skill.sh        # installs the brainify skill + the `pb` CLI
-
-# 2. Get graphify (the graph engine; no LLM key needed for code)
-pip install graphifyy
-
-# 3. Get this hub and build the graph
-git clone <this-hub-url> && cd $(basename <this-hub-url> .git)
-pb sync                                    # clones the tracked repos into repos/ and builds the graph
+ssh-keygen -t ed25519 -C "you@example.com"   # press Enter to accept the defaults
+cat ~/.ssh/id_ed25519.pub                     # copy the whole line it prints
 ```
 
-`repos/` and `{{GRAPH}}` are **not committed** — a fresh clone of this hub won't contain them.
-`pb sync` populates `repos/` (a full working clone of each tracked repo, which you develop in
-directly) and builds the graph. To move an existing local checkout in without re-cloning, use
-`pb adopt <path>`.
+Paste that line into your {{CODE_HOST}} profile under **SSH Keys**, then check it works:
+
+```bash
+ssh -T git@{{CODE_HOST}}
+```
+
+</details>
+
+### 3. Get this hub onto your computer
+
+Open a terminal (on Windows: **Git Bash**, in a short path such as `C:\Projects` — deep folders hit
+Windows' path-length limit):
+
+```bash
+git clone {{HUB_URL}}
+```
+
+### 4. Open it in Claude Code
+
+Open the `{{HUB_DIR}}` folder in Claude Code, choose **Trust** when asked, and **accept the plugin
+install prompt** — that loads Product Brain and the team's shared rules. If nothing seems to happen,
+type `/reload-plugins`.
+
+### 5. Say "update the brain"
+
+Claude downloads the apps into `repos/` and builds the knowledge graph. Do this whenever you want the
+latest — it never overwrites work you haven't saved.
+
+### 6. Optional: connect your tools
+
+Say **"set up my connections"**. Claude checks what is already signed in, connects the code host
+(and Jira, if the team uses it), and tells you exactly what, if anything, you need to fill in
+yourself. Tools it may ask you to install:
+
+| Tool | Windows | macOS | Linux |
+|---|---|---|---|
+| `glab` (GitLab) | `winget install GLab.GLab` | `brew install glab` | [glab install docs](https://gitlab.com/gitlab-org/cli#installation) |
+| `gh` (GitHub) | `winget install GitHub.cli` | `brew install gh` | [gh install docs](https://github.com/cli/cli#installation) |
+| `uv` (runs the Jira connector) | `winget install astral-sh.uv` | `brew install uv` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+
+Tokens are a **fallback** — only needed when a normal sign-in (`glab auth login`, `gh auth login`)
+isn't possible:
+
+| Token | Needed for | When you can skip it |
+|---|---|---|
+| `GITLAB_TOKEN` | GitLab access for Claude | `glab auth login` works — a stale token would override it and fail |
+| `JIRA_PERSONAL_TOKEN` (or `JIRA_USERNAME` + `JIRA_API_TOKEN` on Jira Cloud) | Reading Jira tickets | You already have your own Jira connector in Claude |
+| `SONAR_TOKEN` + `SONAR_HOST_URL` | SonarQube issue details | The pipeline verdict and dashboard link are enough |
+
+Tokens go in `.claude/settings.local.json` (never committed). Type them there yourself — never paste
+a token into the chat.
+
+## Everyday use
+
+Just ask. Some examples:
+
+| Say | What happens |
+|---|---|
+| "Update the brain" | Pulls the latest docs and code, rebuilds the graph |
+| "Where is *password reset* implemented?" | Finds the code across all apps, explained in product words |
+| "Write a spec for *bulk export*" | Starts a spec in `docs/specs/` |
+| "Record the decision to use *X*" | Adds a decision record in `docs/decisions/` |
+| "What changed in *<repo>* this week?" | Summarises recent commits |
+| "Check SonarQube on MR !*<n>*" | Reads the quality gate and findings for that merge request |
+| "Audit our setup" | Checks the hub and suggests the next fix |
 
 ## Tracked repos
 
 {{REPOS_TABLE}}
 
-## What's in this hub
+## Where things go
 
-| File / folder | Purpose |
+| File / folder | What it is | Committed? |
+|---|---|---|
+| `constitution.md` | Non-negotiable principles | Yes |
+| `vocabulary.md` | Glossary: product ↔ code terms | Yes |
+| `domains.md` | Domain map and owners | Yes |
+{{DOC_TYPE_ROWS}}
+| `brain.config.json` | Tracked repos, doc types, graph settings | Yes |
+| `.claude/settings.json` | Shared Claude settings and plugins for everyone | Yes |
+| `.mcp.json` | Shared tool connections (hosts only, no secrets) | Yes |
+| `.claude/settings.local.example.json` | Template for your personal settings | Yes |
+| `.claude/settings.local.json` | **Your** tokens and personal settings | **Never** |
+| `repos/` | Working copies of the apps (`pb sync` creates them) | No |
+| `{{GRAPH}}` | The knowledge graph (`pb sync` builds it) | No |
+| `.work/` | Scratch: command output, exports, temp files | No |
+
+Nothing else goes at the top level. A new kind of document gets a new doc type in
+`brain.config.json` first. Say "tidy the hub" and Claude runs `pb check` to list anything out of place.
+
+## If something goes wrong
+
+| Problem | Fix |
 |---|---|
 | `constitution.md` | Non-negotiable principles (required) |
 | `vocabulary.md` | Glossary: product ↔ code terms (required) |
@@ -47,14 +145,45 @@ directly) and builds the graph. To move an existing local checkout in without re
 | `brain.config.json` | Tracked repos + doc types + graph settings |
 | `brand/` | Compiled brand (`brand.css`, `tokens.json`) — built from `DESIGN.md`, committed |
 | `{{GRAPH}}` | The knowledge graph (built by `pb sync`) |
+| `Permission denied (publickey)` | Your SSH key isn't registered on {{CODE_HOST}} — see step 2. |
+| Windows: typing `python` opens the Microsoft Store | Settings → Apps → Advanced app settings → **App execution aliases** → turn off the two *python* entries. |
+| Windows: "python is not recognized" | Re-run the Python installer, choose **Modify**, and tick **Add Python to environment variables**. Then open a new terminal. |
+| Windows: `Filename too long` | Run `git config --global core.longpaths true`, and keep the hub in a short path like `C:\Projects`. |
+| `UnicodeEncodeError` when running `pb` outside Claude | Set UTF-8 for that terminal: `export PYTHONUTF8=1` (PowerShell: `$env:PYTHONUTF8=1`). |
+| `/mcp` shows a server as failed | Say "set up my connections" — Claude checks sign-in and tokens without showing them. |
+| Anything else | Ask Claude to "audit our setup". |
 
-## Everyday commands
+## Good to know
+
+- The graph is built from the **code** by default. No API key is needed, and "code-only" in the sync
+  report is expected unless the team has configured one.
+- `repos/` and `{{GRAPH}}` are never committed — every teammate builds their own with "update the brain".
+- Updating never overwrites unsaved work: an app with local changes is skipped, not reset.
+
+## Updating Product Brain itself
+
+"Update the brain" refreshes this hub's knowledge and code. Product Brain (the tooling: `pb`, the
+skills and the shared rule plugins) updates separately:
+
+1. In Claude Code, run `/plugin marketplace update product-brain`, then `/reload-plugins`.
+   (With auto-update on, this happens in the background after a session starts.)
+2. Say "update the brain", so this README and the hub's managed files pick up the new version.
+3. Say "audit our setup". It lists anything the new version adds that this hub hasn't turned on
+   yet, such as a new shared plugin.
+
+Check the version with `pb version --check`. Copies left over from an older install (an old
+`~/.claude/skills/brainify` folder or an old `pb` on your PATH) hide the new version. Claude warns
+you about them when a session starts and offers to remove them.
+
+## For developers
 
 ```bash
 pb sync                 # pull the hub + tracked repos, rebuild the graph (incremental)
 pb sync --rebuild       # ignore the cache and rebuild from scratch
 pb status               # hub health at a glance
+pb check                # list files outside the hub layout
 pb find <term> [alias]  # search the graph for code symbols behind a product term
+pb adopt <path>         # move an existing local checkout into repos/ (no re-clone)
 ```
 
 _Product Brain {{VERSION}}_
@@ -62,6 +191,9 @@ _Product Brain {{VERSION}}_
 
 ## Contributing
 
-This hub may use a **protected default branch** — open a merge request / pull request rather than
-pushing to `main` (a force-push to a protected branch is rejected). Everyday knowledge changes are
-just Markdown edits; after a meaningful code or doc change, run `pb sync` so the graph stays current.
+- Work on a branch and open a merge request / pull request — never commit to `main` (it is usually
+  protected, and a direct push is rejected).
+- Knowledge changes are just Markdown edits. Ask Claude to write or update a doc, review it, then
+  ask it to "open a merge request".
+- Never commit `.claude/settings.local.json` or any token. The hub's `.gitignore` already covers it.
+- After a meaningful code or doc change, "update the brain" so the graph stays current.

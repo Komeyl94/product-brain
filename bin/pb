@@ -5,6 +5,7 @@ Usage:
   pb sync [--dry-run] [--rebuild] [--provider NAME] [--hub PATH]
   pb adopt <local-checkout> [--id ID] [--copy] [--hub PATH]
   pb status [--hub PATH]
+  pb check [--hook] [--hub PATH]
   pb find <term> [aliases...] [--hub PATH]
   pb version [--check]
   pb --help
@@ -50,6 +51,13 @@ from pathlib import Path
 
 CORE_DOCS = ["constitution.md", "vocabulary.md", "DESIGN.md", "domains.md"]
 
+# The hub layout (checked by `pb check`). The top level is closed: only these files and folders,
+# plus dot-entries (.claude/, .mcp.json, .gitignore, … — tooling, always allowed) and the repos +
+# graph folders from brain.config.json. Team content goes under docs/<registered doc type>/.
+ROOT_FILES = set(CORE_DOCS) | {"brain.config.json", "CLAUDE.md", "README.md"}
+ROOT_DIRS = {"docs", "workflows", "templates"}
+REQUIRED_DOC_TYPES = ["knowledge"]
+
 README_START = "<!-- product-brain:managed:start -->"
 README_END = "<!-- product-brain:managed:end -->"
 # Signatures of a git-host default README (safe to replace — it's boilerplate, not the team's).
@@ -74,6 +82,16 @@ PROVIDER_ENV = {
 }
 ALL_PROVIDER_KEYS = {k for keys in PROVIDER_ENV.values() for k in keys}
 
+# One-line "what belongs here" for the common doc types (README + docs/<type>/.gitkeep).
+DOC_TYPE_HINTS = {
+    "knowledge": "Stable product facts: overview, stakeholders, feature status, metrics, ways of working",
+    "specs": "What a feature should do and why",
+    "decisions": "One record per decision: what, why, and what was rejected",
+    "meeting-notes": "Notes or recordings, named `YYYY-MM-DD-topic.md`",
+    "research": "Research, analysis, PDFs and briefs",
+    "runbooks": "Step-by-step operational how-tos",
+}
+
 
 def log(msg): print(f"[pb] {msg}")
 def die(msg): print(f"[pb] ERROR: {msg}", file=sys.stderr); sys.exit(1)
@@ -84,7 +102,7 @@ def load_config(hub: Path) -> dict:
     if not cfg.exists():
         die(f"no brain.config.json in {hub} — is this a hub? (run brainify to create one)")
     try:
-        return json.loads(cfg.read_text())
+        return json.loads(cfg.read_text(encoding="utf-8-sig"))
     except json.JSONDecodeError as e:
         die(f"brain.config.json is not valid JSON: {e}")
 
@@ -211,21 +229,21 @@ def ensure_exclusions(hub: Path, rdir: Path, out: Path, repos: list, dry: bool):
     git_dir = hub / ".git"
     if git_dir.exists():
         excl = git_dir / "info" / "exclude"
-        existing = excl.read_text().splitlines() if excl.exists() else []
+        existing = excl.read_text(encoding="utf-8").splitlines() if excl.exists() else []
         wanted = [f"/{repos_name}/", f"/{out_name}/", "/graphify-out/"]
         add = [w for w in wanted if w not in existing]
         if add:
             log(f"git: excluding {', '.join(w.strip('/') for w in add)} from commits (.git/info/exclude)")
             if not dry:
                 excl.parent.mkdir(parents=True, exist_ok=True)
-                excl.write_text("\n".join(existing + add).rstrip("\n") + "\n")
+                excl.write_text("\n".join(existing + add).rstrip("\n") + "\n", encoding="utf-8")
 
     # 2) .gitignore: graphify's internal AST cache and temporary work dirs.
     #    repos/ is intentionally NOT listed here — it stays in .git/info/exclude so graphify
     #    can still read the clones. graphify-out/ IS safe here: it is graphify's own output.
     gitignore = hub / ".gitignore"
     gi_marker = "graphify-out/cache/"
-    existing_gi = gitignore.read_text() if gitignore.exists() else ""
+    existing_gi = gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""
     if gi_marker not in existing_gi:
         block = (
             "\n# graphify-out/ — graphify AST parse cache (regenerable, can reach 200 MB+)\n"
@@ -238,8 +256,17 @@ def ensure_exclusions(hub: Path, rdir: Path, out: Path, repos: list, dry: bool):
         )
         log("git: writing graphify-out/ cache and .work/ exclusions to .gitignore")
         if not dry:
-            with open(gitignore, "a") as f:
+            with open(gitignore, "a", encoding="utf-8") as f:
                 f.write(block)
+
+    # 2b) .gitignore: personal Claude settings hold tokens — a personal global gitignore
+    #     doesn't protect teammates, so the hub's tracked .gitignore must cover it.
+    local_settings = ".claude/settings.local.json"
+    if local_settings not in (gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""):
+        log(f"git: ignoring {local_settings} in .gitignore (personal tokens, never committed)")
+        if not dry:
+            with open(gitignore, "a", encoding="utf-8") as f:
+                f.write(f"\n# Personal Claude settings and tokens — never commit\n{local_settings}\n")
 
     # 3) graphify: skip the generated output; keep the repos in; focus each repo on its "src".
     gfi = hub / ".graphifyignore"
@@ -264,10 +291,29 @@ def ensure_exclusions(hub: Path, rdir: Path, out: Path, repos: list, dry: bool):
             wanted_lines.append(f"# {rid}: graph only {', '.join(sorted(keep))}")
             wanted_lines += [f"{repos_name}/{rid}/{name}" for name in extras]
 
-    if not gfi.exists() or gfi.read_text().splitlines() != wanted_lines:
+    if not gfi.exists() or gfi.read_text(encoding="utf-8").splitlines() != wanted_lines:
         log(f"graphify: writing .graphifyignore (skip {out_name}/, focus repos on their src)")
         if not dry:
-            gfi.write_text("\n".join(wanted_lines) + "\n")
+            gfi.write_text("\n".join(wanted_lines) + "\n", encoding="utf-8")
+
+
+def ensure_doc_folders(hub: Path, cfg: dict, dry: bool):
+    """Every registered doc type gets docs/<type>/ with a .gitkeep, so the folder exists in
+    every clone even before its first document."""
+    for dtype in cfg.get("doc_types", []):
+        keep = hub / "docs" / dtype / ".gitkeep"
+        if keep.exists():
+            continue
+        log(f"docs: creating docs/{dtype}/.gitkeep")
+        if not dry:
+            keep.parent.mkdir(parents=True, exist_ok=True)
+            keep.write_text("", encoding="utf-8")
+
+
+def hub_remote(hub: Path) -> str:
+    out = subprocess.run(["git", "-C", str(hub), "remote", "get-url", "origin"],
+                         capture_output=True, text=True)
+    return out.stdout.strip() if out.returncode == 0 else ""
 
 
 def any_llm_key() -> bool:
@@ -318,6 +364,12 @@ def run_graphify(content_root: Path, out: Path, dry: bool, rebuild: bool, provid
             "sets graphify up for you).")
     env, label = graphify_env(provider)
     log(f"semantic extraction provider: {label}")
+    # graphify >= 0.9.5x refuses a no-key run over changed docs unless told --code-only
+    # (older versions don't know the flag, so only pass it when graphify advertises it).
+    if code_only_mode(provider) and "--code-only" in subprocess.run(
+            ["graphify", "--help"], capture_output=True, text=True, encoding="utf-8",
+            errors="replace").stdout:
+        cmd.append("--code-only")
     out.mkdir(parents=True, exist_ok=True)
     if rebuild:
         for cache in cache_candidates:
@@ -335,7 +387,7 @@ def graph_stats(out: Path) -> str:
     if not gj.exists():
         return "graph.json not found (did graphify run?)"
     try:
-        data = json.loads(gj.read_text())
+        data = json.loads(gj.read_text(encoding="utf-8"))
         nodes = len(data.get("nodes", []))
         edges = len(data.get("links", data.get("edges", [])))
         return f"{nodes} nodes, {edges} edges"
@@ -358,12 +410,13 @@ def write_report(hub: Path, cfg: dict, out: Path, dry: bool, code_only: bool = F
         f"**Repos:** {repos or '(none)'}\n\n"
         f"**Graph:** {graph_stats(out)}\n\n"
         f"{coverage}"
-        f"_Run `pb sync` again after meaningful code or doc changes._\n"
+        f"_Run `pb sync` again after meaningful code or doc changes._\n",
+        encoding="utf-8",
     )
     log(f"wrote {report.relative_to(hub)}")
 
 
-def render_readme(cfg: dict, graph_name: str) -> str:
+def render_readme(cfg: dict, graph_name: str, hub: Path = None) -> str:
     """Interpolate the framework's hub-readme template with this hub's config.
     Byte-stable for unchanged config: repos are sorted, no timestamps."""
     tmpl_path = framework_root() / "templates" / "hub-readme-template.md"
@@ -380,11 +433,18 @@ def render_readme(cfg: dict, graph_name: str) -> str:
         repos_table = "\n".join(rows)
     else:
         repos_table = "_No repos registered yet — add them to `brain.config.json`, then `pb sync`._"
-    doc_types = ", ".join(f"`{d}`" for d in cfg.get("doc_types", [])) or "_none registered yet_"
-    return (tmpl_path.read_text()
+    doc_rows = "\n".join(f"| `docs/{d}/` | {DOC_TYPE_HINTS.get(d, 'Team knowledge')} |"
+                         for d in cfg.get("doc_types", [])) or "| `docs/<type>/` | _No doc types registered yet_ |"
+    url = hub_remote(hub) if hub else ""
+    host = url.split("@")[-1].split("//")[-1].split(":")[0].split("/")[0] if url else "your code host"
+    name = url.rstrip("/").removesuffix(".git").rsplit("/", 1)[-1].rsplit(":", 1)[-1] if url else cfg.get("hub_name", "hub")
+    return (tmpl_path.read_text(encoding="utf-8")
+            .replace("{{HUB_URL}}", url or "<this-hub-url>")
+            .replace("{{CODE_HOST}}", host)
+            .replace("{{HUB_DIR}}", name)
+            .replace("{{DOC_TYPE_ROWS}}", doc_rows)
             .replace("{{HUB_NAME}}", cfg.get("hub_name", "Product Brain hub"))
             .replace("{{REPOS_TABLE}}", repos_table)
-            .replace("{{DOC_TYPES}}", doc_types)
             .replace("{{GRAPH}}", graph_name)
             .replace("{{VERSION}}", read_version()))
 
@@ -402,12 +462,12 @@ def write_readme(hub: Path, cfg: dict, out: Path, dry: bool):
     - README with our managed markers → refresh only that block, leave the rest.
     - Hand-written README without markers → leave untouched (just hint how to opt in)."""
     graph_name = out.relative_to(hub).as_posix().rstrip("/") + "/graph.json"
-    rendered = render_readme(cfg, graph_name)
+    rendered = render_readme(cfg, graph_name, hub)
     if not rendered:
         return  # framework template not found (e.g. pb copied out of the repo)
     block = _managed_block(rendered)
     readme = hub / "README.md"
-    existing = readme.read_text() if readme.exists() else None
+    existing = readme.read_text(encoding="utf-8") if readme.exists() else None
 
     if existing is None or any(sign in existing for sign in HOST_README_SIGNS):
         new, why = rendered, ("created README.md" if existing is None
@@ -426,7 +486,7 @@ def write_readme(hub: Path, cfg: dict, out: Path, dry: bool):
     if dry:
         log(f"would update README.md ({why.split(' ',1)[0]})")
         return
-    readme.write_text(new)
+    readme.write_text(new, encoding="utf-8")
     log(why)
 
 
@@ -454,6 +514,7 @@ def cmd_sync(hub: Path, dry: bool, rebuild: bool, hub_pull: bool, repo_pull: boo
     log(f"apps folder: {rdir.name}/ — full working clones; develop in them directly inside the hub")
     pull_repos(rdir, repos, dry, repo_pull)
     ensure_exclusions(hub, rdir, out, repos, dry)
+    ensure_doc_folders(hub, cfg, dry)
     run_graphify(hub, out, dry, rebuild, provider)
     write_report(hub, cfg, out, dry, code_only)
     if readme:
@@ -513,7 +574,7 @@ def cmd_adopt(hub: Path, path: str, rid: str, do_copy: bool, force: bool):
     ids = [r.get("id") for r in cfg.get("repos", [])]
     if rid not in ids:
         cfg.setdefault("repos", []).append({"id": rid, "url": origin_url, "src": ["."]})
-        (hub / "brain.config.json").write_text(json.dumps(cfg, indent=2) + "\n")
+        (hub / "brain.config.json").write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
         log(f"registered '{rid}' in brain.config.json — set its \"src\" dirs (e.g. [\"app/\"]) if needed")
     elif origin_url:
         cfgd = next(r for r in cfg["repos"] if r.get("id") == rid)
@@ -532,21 +593,73 @@ def framework_root() -> Path:
 
 def read_version() -> str:
     vf = framework_root() / "VERSION"
-    return vf.read_text().strip() if vf.exists() else "unknown"
+    return vf.read_text(encoding="utf-8").strip() if vf.exists() else "unknown"
 
 
 def _skill_version(skill_dir: Path):
     f = skill_dir / "SKILL.md"
     if not f.exists():
         return None
-    for line in f.read_text().splitlines():
+    for line in f.read_text(encoding="utf-8").splitlines():
         if line.strip().lower().startswith("version:"):
             return line.split(":", 1)[1].strip()
     return "unversioned"
 
 
+SHARED_PLUGINS = ("git-workflow@product-brain", "guardrails@product-brain")
+
+
+def legacy_installs(hub: Path, home: Path = None, pb_on_path: str = None) -> list:
+    """Leftovers from pre-plugin installs that hide the plugin's newer copy, plus hubs set up before
+    shared plugins existed. Only meaningful when this pb runs from the plugin; a checkout install
+    (bin/install-skill.sh) is the old copy by design."""
+    root = framework_root()
+    if "/.claude/plugins/" not in root.as_posix():
+        return []
+    home = home or Path.home()
+    found = []
+    for loc in (home / ".claude" / "skills" / "brainify", hub / ".claude" / "skills" / "brainify"):
+        if loc.exists() and not loc.is_symlink():
+            found.append(f"An old brainify skill copy ({_skill_version(loc)}) at {loc} shadows the "
+                         f"plugin's brainify {read_version()}. Remove that folder, then /reload-plugins.")
+    pb_on_path = pb_on_path if pb_on_path is not None else (shutil.which("pb") or "")
+    # which() skips extensionless files on Windows, but Git Bash still runs an old ~/.local/bin/pb
+    old_link = home / ".local" / "bin" / "pb"
+    for cand in dict.fromkeys(c for c in (pb_on_path, str(old_link) if os.path.lexists(old_link) else "") if c):
+        if Path(cand).resolve() != (root / "bin" / "pb").resolve():
+            found.append(f"An old `pb` at {cand} -> {Path(cand).resolve()} can run instead of the plugin's. "
+                         f"Remove that link (the plugin already puts pb on PATH).")
+    settings = hub / ".claude" / "settings.json"
+    if (hub / "brain.config.json").exists() and settings.exists():
+        text = settings.read_text(encoding="utf-8-sig")
+        missing = [p for p in SHARED_PLUGINS if p not in text]
+        if missing:
+            found.append(f"This hub was set up by an older version: {', '.join(missing)} not enabled in "
+                         f".claude/settings.json. Say \"audit our setup\" to upgrade it.")
+    return found
+
+
+def cmd_version_hook() -> int:
+    """Claude Code SessionStart hook: tell Claude about old installs so it can offer to clean them
+    up. Silent when there are none; never fails a session."""
+    try:
+        found = legacy_installs(Path(os.environ.get("CLAUDE_PROJECT_DIR") or "."))
+    except Exception:
+        return 0
+    if found:
+        print("Product Brain found leftovers from an older version:\n"
+              + "\n".join(f"  - {f}" for f in found)
+              + "\nTell the user about these once, early, in plain words, and offer to fix them. "
+                "Ask before deleting anything.")
+    return 0
+
+
 def report_installed_skill():
     root = framework_root()
+    for f in legacy_installs(Path.cwd()):
+        print(f"⚠️  {f}")
+    if "/.claude/plugins/" in root.as_posix():
+        return
     repo_v = _skill_version(root / "skills" / "brainify")
     locations = [(Path.home() / ".claude" / "skills" / "brainify", "personal"),
                  (Path.cwd() / ".claude" / "skills" / "brainify", "project")]
@@ -618,7 +731,7 @@ def cmd_find(hub: Path, terms: list, code_only: bool, limit: int, repo: str):
         if repo not in known:
             die(f"unknown repo '{repo}'. Known: {', '.join(known) or '(none)'}")
     try:
-        data = json.loads(gj.read_text())
+        data = json.loads(gj.read_text(encoding="utf-8"))
     except Exception as e:
         die(f"couldn't read {gj}: {e}")
     q = [t.lower() for t in terms]
@@ -666,6 +779,12 @@ def cmd_status(hub: Path):
     for d in CORE_DOCS:
         mark = "ok" if (hub / d).exists() else ("absent" if d == "domains.md" else "MISSING")
         print(f"  {d}: {mark}")
+    try:
+        bad, notes = layout_report(hub, cfg)
+        n = len(bad) + len(notes)
+        print("Layout: ok" if not n else f"Layout: {n} problem(s) — run `pb check`")
+    except (OSError, subprocess.CalledProcessError):
+        print("Layout: not checked (needs git)")
     gj = out / "graph.json"
     if gj.exists():
         age = (dt.datetime.now() - dt.datetime.fromtimestamp(gj.stat().st_mtime)).days
@@ -674,7 +793,159 @@ def cmd_status(hub: Path):
         print("Graph: not built — run `pb sync`")
 
 
+LAYOUT_HELP = """Where things go in a Product Brain hub:
+  - team knowledge -> docs/<type>/, where <type> is registered in brain.config.json
+    (registered: {types})
+  - a new kind of doc -> add its type to doc_types in brain.config.json first; never a new
+    top-level folder
+  - scratch, command output, API/JSON dumps -> .work/ (git-ignored); put the finding in a doc
+  - the top level holds only: {root},
+    docs/, workflows/, templates/ (plus dot-files and the repos/graph folders)"""
+
+
+def layout_problems(cfg: dict, paths) -> list:
+    """The hub-relative (POSIX) paths that sit outside the hub layout."""
+    types = set(cfg.get("doc_types", []))
+    dirs = ROOT_DIRS | {cfg.get("workspace", {}).get("repos_dir", "repos"),
+                        cfg.get("graph", {}).get("out", "graph/").strip("/").split("/")[0]}
+    bad = []
+    for p in paths:
+        top, _, rest = p.partition("/")
+        if top.startswith("."):
+            continue  # tooling: .claude/, .mcp.json, .gitignore, .work/, …
+        if not rest:
+            ok = top in ROOT_FILES
+        elif top == "docs":
+            kind, _, leaf = rest.partition("/")
+            ok = bool(leaf) and kind in types
+        else:
+            ok = top in dirs
+        if not ok:
+            bad.append(p)
+    return bad
+
+
+def _porcelain_paths(raw: bytes) -> list:
+    """New/changed paths from `git status --porcelain -z` (deletions skipped: they're leaving)."""
+    entries, paths, i = raw.decode("utf-8", "replace").split("\0"), [], 0
+    while i < len(entries):
+        e = entries[i]
+        i += 1
+        if len(e) < 4:
+            continue
+        xy, path = e[:2], e[3:]
+        if "R" in xy or "C" in xy:
+            i += 1  # the next entry is the rename/copy source
+        if "D" not in xy:
+            paths.append(path)
+    return paths
+
+
+def git_paths(hub: Path, changed_only: bool = False) -> list:
+    """Every non-ignored file in the hub (tracked + new), or only the new/changed ones."""
+    if changed_only:
+        cmd = ["git", "-C", str(hub), "status", "--porcelain", "-z", "--untracked-files=all"]
+        return _porcelain_paths(subprocess.run(cmd, capture_output=True, check=True).stdout)
+    cmd = ["git", "-C", str(hub), "ls-files", "-z", "--cached", "--others", "--exclude-standard"]
+    out = subprocess.run(cmd, capture_output=True, check=True).stdout.decode("utf-8", "replace")
+    return [p for p in out.split("\0") if p and (hub / p).exists()]  # skip deleted-not-staged
+
+
+def _grouped(bad: list) -> list:
+    """Collapse a stray folder's files into one line: 'Stuff/ (7 files)'."""
+    groups = {}
+    for p in bad:
+        parts = p.split("/")
+        if len(parts) == 1 or (parts[0] == "docs" and len(parts) == 2):
+            key = p
+        else:
+            key = "/".join(parts[:2 if parts[0] == "docs" else 1]) + "/"
+        groups[key] = groups.get(key, 0) + 1
+    return [k if not k.endswith("/") else f"{k} ({n} file{'s' * (n > 1)})"
+            for k, n in sorted(groups.items(), key=lambda kv: kv[0].lower())]
+
+
+def layout_help(cfg: dict) -> str:
+    return LAYOUT_HELP.format(types=", ".join(cfg.get("doc_types", [])) or "none",
+                              root=", ".join(sorted(ROOT_FILES)))
+
+
+def layout_report(hub: Path, cfg: dict):
+    """(files outside the layout, other notes) for the whole hub."""
+    types = cfg.get("doc_types", [])
+    notes = [f"required doc type '{t}' is not registered in brain.config.json"
+             for t in REQUIRED_DOC_TYPES if t not in types]
+    notes += [f"docs/{t}/ is registered but missing" for t in types if not (hub / "docs" / t).is_dir()]
+    return layout_problems(cfg, git_paths(hub)), notes
+
+
+def cmd_check(hub: Path) -> int:
+    cfg = load_config(hub)
+    try:
+        bad, notes = layout_report(hub, cfg)
+    except (OSError, subprocess.CalledProcessError):
+        die("pb check needs git on PATH and the hub to be a git repo")
+    if not bad and not notes:
+        print("Layout: ok — everything is where the hub layout expects it.")
+        return 0
+    if bad:
+        print("Outside the hub layout:")
+        for line in _grouped(bad):
+            print(f"  - {line}")
+    for n in notes:
+        print(f"Note: {n}")
+    print("\n" + layout_help(cfg))
+    return 1
+
+
+def cmd_check_hook() -> int:
+    """Claude Code Stop hook: when Claude has just left files outside the layout, tell it to move
+    them before it finishes (exit 2 feeds stderr back to Claude). Checks only new/changed files, so
+    old clutter doesn't nag every reply (`pb check` reports that). Never blocks twice in a row, and
+    is a no-op outside a hub or when anything goes wrong — a hygiene check must not break a session."""
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        event = json.loads(sys.stdin.read() or "{}")
+        if event.get("stop_hook_active"):
+            return 0
+        hub = Path(os.environ.get("CLAUDE_PROJECT_DIR") or event.get("cwd") or ".")
+        cfg_path = hub / "brain.config.json"
+        if not cfg_path.exists():
+            return 0
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8-sig"))
+        bad = layout_problems(cfg, git_paths(hub, changed_only=True))
+    except Exception:
+        return 0
+    if not bad:
+        return 0
+    lines = "\n".join(f"  - {line}" for line in _grouped(bad))
+    print(f"Product Brain layout check: these new or changed files are outside the hub layout:\n"
+          f"{lines}\n\n{layout_help(cfg)}\n\n"
+          "Before finishing, move each one where it belongs (git mv if tracked), or into .work/ if "
+          "it is scratch. If a file looks like the user's own and you're unsure where it goes, ask "
+          "them instead of moving or deleting it. Re-check with `pb check`.", file=sys.stderr)
+    return 2
+
+
+def selftest():
+    cfg = {"doc_types": ["knowledge", "specs"]}
+    paths = ["CLAUDE.md", ".mcp.json", ".claude/settings.json", "docs/specs/a.md",
+             "docs/other/b.md", "docs/stray.md", "dump.json", "Stuff/x.md", "Stuff/y.md",
+             "workflows/pm.md", "graph/graph.json", "repos/api/x.py"]
+    bad = layout_problems(cfg, paths)
+    assert bad == ["docs/other/b.md", "docs/stray.md", "dump.json", "Stuff/x.md", "Stuff/y.md"], bad
+    assert _grouped(bad) == ["docs/other/ (1 file)", "docs/stray.md", "dump.json",
+                             "Stuff/ (2 files)"], _grouped(bad)
+    custom = {"workspace": {"repos_dir": "apps"}, "graph": {"out": "map/"}}
+    assert layout_problems(custom, ["apps/x.py", "map/graph.json", "repos/x.py"]) == ["repos/x.py"]
+    raw = b"?? new.txt\0R  new.md\0old.md\0 D gone.md\0 M CLAUDE.md\0"
+    assert _porcelain_paths(raw) == ["new.txt", "new.md", "CLAUDE.md"], _porcelain_paths(raw)
+    print("pb check selftest: ok")
+
+
 def main():
+    for stream in (sys.stdout, sys.stderr):  # Windows consoles default to a legacy code page
+        stream.reconfigure(encoding="utf-8", errors="replace")
     p = argparse.ArgumentParser(prog="pb", description="Product Brain hub CLI")
     p.add_argument("--hub", default=".", help="path to the hub repo (default: current dir)")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -687,6 +958,10 @@ def main():
     s.add_argument("--provider", help="LLM provider for graphify's doc/image pass: "
                    "gemini | claude | openai | kimi | deepseek | ollama | auto (overrides brain.config.json)")
     sub.add_parser("status", help="show hub health at a glance")
+    c = sub.add_parser("check", help="list files outside the hub layout (also the Claude Code Stop hook)")
+    c.add_argument("--hook", action="store_true",
+                   help="Stop-hook mode: read the hook event on stdin, check only new/changed files")
+    c.add_argument("--selftest", action="store_true", help=argparse.SUPPRESS)
     a = sub.add_parser("adopt", help="move an existing local checkout into the hub (one-time, keeps git history + uncommitted work)")
     a.add_argument("path", help="path to your existing local checkout")
     a.add_argument("--id", help="repo id to use under repos/ (default: matched from config, else folder name)")
@@ -699,11 +974,16 @@ def main():
     f.add_argument("--limit", type=int, default=15, help="max results (default 15)")
     v = sub.add_parser("version", help="show the Product Brain version (and check for updates)")
     v.add_argument("--check", action="store_true", help="fetch and report whether a newer version exists upstream")
+    v.add_argument("--hook", action="store_true", help=argparse.SUPPRESS)
     args = p.parse_args()
 
     if args.cmd == "version":
+        if args.hook:
+            sys.exit(cmd_version_hook())
         cmd_version(args.check)
         return
+    if args.cmd == "check" and (args.hook or args.selftest):
+        sys.exit(cmd_check_hook() if args.hook else selftest())
 
     hub = Path(args.hub).resolve()
     if not hub.exists():
@@ -714,6 +994,8 @@ def main():
                      args.provider, not args.no_readme)
         elif args.cmd == "status":
             cmd_status(hub)
+        elif args.cmd == "check":
+            sys.exit(cmd_check(hub))
         elif args.cmd == "adopt":
             cmd_adopt(hub, args.path, args.id, args.copy, args.force)
         elif args.cmd == "find":

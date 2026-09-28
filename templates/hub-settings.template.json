@@ -1,23 +1,47 @@
 {
-  "//": "brainify writes this to a new hub's .claude/settings.json. Two jobs: (1) make Product Brain available in every Claude surface that opens this hub — CLI, VS Code/JetBrains, desktop, and cloud/Cowork sessions — by declaring the marketplace + plugin, and (2) pre-allow the safe commands the team runs so teammates aren't prompted for each one. Path-free and safe to commit (no machine paths). Personal approvals still go in the untracked .claude/settings.local.json.",
+  "//": "brainify writes this to a new hub's .claude/settings.json. Jobs: (1) make Product Brain available in every Claude surface that opens this hub — CLI, VS Code/JetBrains, desktop, and cloud/Cowork sessions — by declaring the marketplace + plugins (product-brain, plus the shared git-workflow and guardrails plugins; brainify adds the stack-* plugins that match the hub's repos), (2) force UTF-8 for pb and graphify on Windows (env.PYTHONUTF8), and (3) pre-allow the safe commands the team runs so teammates aren't prompted for each one. Path-free and safe to commit (no machine paths). Personal approvals still go in the untracked .claude/settings.local.json.",
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "PYTHONUTF8": "1"
+  },
   "extraKnownMarketplaces": {
     "product-brain": {
-      "source": { "source": "github", "repo": "Whotan/product-brain" }
+      "source": {
+        "source": "github",
+        "repo": "Whotan/product-brain"
+      },
+      "autoUpdate": true
     }
   },
-  "enabledPlugins": { "product-brain@product-brain": true },
+  "enabledPlugins": {
+    "product-brain@product-brain": true,
+    "git-workflow@product-brain": true,
+    "guardrails@product-brain": true
+  },
   "permissions": {
     "allow": [
       "Bash(pb sync:*)",
       "Bash(pb status)",
+      "Bash(pb check:*)",
       "Bash(pb find:*)",
       "Bash(pb version:*)",
       "Bash(pb adopt:*)",
+      "Bash(guardrail:*)",
       "Bash(graphify:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(glab mr list:*)",
+      "Bash(glab mr view:*)",
+      "Bash(glab ci list:*)",
+      "Bash(glab ci status:*)",
+      "Bash(glab ci view:*)",
+      "Bash(glab ci trace:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)"
     ]
   }
 }

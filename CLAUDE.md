@@ -19,7 +19,10 @@ separate hub repo created by running `brainify`.
 
 | Purpose | Path |
 |---|---|
-| Setup/maintenance skill | `skills/brainify/SKILL.md` |
+| Setup/maintenance/upgrade skill | `skills/brainify/SKILL.md` |
+| Tool-connections skill | `skills/connect-tools/SKILL.md` |
+| Shared plugins (rules, hooks, skills, stack conventions) | `plugins/<name>/`, listed in `.claude-plugin/marketplace.json` |
+| Self-checks | `node --test tests/*.mjs`, `python3 tests/test_git_gate.py`, `python3 tests/test_pb_hub_files.py` |
 | Plugin + marketplace manifests (primary install path) | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` |
 | Hub CLI + tooling | `bin/pb`, `bin/package-skill.sh` (Cowork bundle), `bin/install-skill.sh` (fallback) |
 | Hub templates | `templates/` |
@@ -38,9 +41,11 @@ changes** — pushing to `main` alone ships nothing to existing users (a fresh i
 `main`, but an update does not). Every release:
 
 1. Commit and push the changes to `main`.
-2. **Bump all three in lockstep:** `VERSION`, `.claude-plugin/plugin.json` `version`, and the
-   `version:` in `skills/brainify/SKILL.md` frontmatter. Use semver (feature → minor, fix → patch).
-   Also update the `currently \`x.y.z\`` mention in `README.md`.
+2. **Bump in lockstep:** `VERSION`, `.claude-plugin/plugin.json` `version`, every
+   `plugins/*/.claude-plugin/plugin.json` `version`, and the `version:` in
+   `skills/brainify/SKILL.md` frontmatter. Use semver (feature → minor, fix → patch). Also update
+   the `currently \`x.y.z\`` mention in `README.md`. `python3 tests/test_git_gate.py` fails if any
+   plugin manifest is off `VERSION` or a `plugins/` folder is missing from `marketplace.json`.
 3. Commit the bump, push, and tell users to run `/plugin marketplace update product-brain` then
    `/reload-plugins` (auto-update users get it in the background after a session starts).
 
@@ -52,7 +57,14 @@ remove + re-add it (a plain `update` hits a name mismatch), so avoid renames.
 ## What a hub looks like (what the templates build)
 
 Required core: `constitution.md`, `vocabulary.md`, `DESIGN.md`. Recommended (graph-assisted): `domains.md`.
-Plus: `brain.config.json` (repos + doc types), `docs/<type>/` (extensible), `workflows/<role>.md`, `graph/` (built by `pb sync`).
+Plus: `brain.config.json` (repos + doc types), `docs/<type>/` (extensible; `docs/knowledge/` is required), `workflows/<role>.md`, `graph/` (built by `pb sync`),
+`.claude/settings.json` (plugins, `PYTHONUTF8`, read-only permissions), and optionally `.mcp.json` +
+`.claude/settings.local.example.json` (from the `connect-tools` skill). Tokens live only in the
+git-ignored `.claude/settings.local.json` and are a fallback — never put a token or a `${TOKEN}`
+placeholder in a committed file, and never have a skill read or print a token value.
+The top level is closed: a new kind of content is a new registered doc type, never a new folder.
+`pb check` enforces this, and `hooks/hooks.json` runs it as a Stop hook in every session. Keep its
+allowlist (`ROOT_FILES` / `ROOT_DIRS` in `bin/pb`) in sync with the layout described in the docs.
 
 ## The graph
 
@@ -98,6 +110,15 @@ Python under `skills/<name>/scripts/`; any future skill's scripts follow the sam
 Cross-repo linking adapters, ripple/impact analysis, CI-push freshness, and a vocabulary↔graph
 linter are tracked in `docs/multi-repo-architecture.md` §13. Soft co-location via graph communities
 is the interim answer for cross-repo questions.
+
+## Shared plugins
+
+`plugins/` holds generic rules, hooks, skills and stack conventions that hubs enable from this same
+marketplace. They must stay **generic** — no company, project, repo or host names; a team's own
+conventions belong in its hub. Rules that must always apply are injected by a `SessionStart` hook;
+stack rules are read on demand through each stack's skill so they don't cost context everywhere.
+Enforcement runs as Claude hooks from `${CLAUDE_PLUGIN_ROOT}` — never install git hooks, CI jobs or
+config files into app repos.
 
 ## When working on this repo
 

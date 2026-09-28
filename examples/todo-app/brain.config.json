@@ -6,7 +6,7 @@
     { "id": "todo-api", "url": "git@github.com:example/todo-api.git", "src": ["app/"] },
     { "id": "todo-web", "url": "git@github.com:example/todo-web.git", "src": ["src/"] }
   ],
-  "doc_types": ["specs", "decisions", "meeting-notes"],
+  "doc_types": ["knowledge", "specs", "decisions", "meeting-notes"],
   "graph": { "out": "graph/" },
   "design": {
     "system": "DESIGN.md",
